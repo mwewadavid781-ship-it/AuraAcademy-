@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA ACADEMY - Zambian Study Terminal</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0e1a; color: #f1f5f9; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .view { display: none; } .view.active { display: block; }
+    .auth-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(135deg, #0f1626 0%, #0a0e1a 100%); }
+    .auth-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 12px; padding: 32px; max-width: 400px; width: 100%; animation: slideIn 0.6s ease-out; }
+    .auth-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; color: #00f0ff; }
+    .auth-subtitle { font-size: 12px; color: #64748b; margin-bottom: 24px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: block; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #1e293b; border-radius: 6px; background: #060913; color: #f1f5f9; font-size: 14px; font-family: inherit; }
+    input:focus, select:focus { outline: none; border-color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 700; font-family: inherit; }
+    .btn-cyan { background: #00f0ff; color: #0a0e1a; }
+    .btn-cyan:hover { box-shadow: 0 0 30px rgba(0, 240, 255, 0.5); transform: translateY(-2px); }
+    .error-msg { background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; color: #ff2e93; padding: 8px 12px; border-radius: 4px; font-size: 12px; margin-bottom: 16px; display: none; }
+    .error-msg.show { display: block; }
+    .toggle-auth { text-align: center; margin-top: 16px; font-size: 12px; color: #64748b; }
+    .toggle-auth button { background: none; border: none; color: #00f0ff; cursor: pointer; font-weight: 600; }
+    .header { padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; background: linear-gradient(180deg, #0f1626 0%, #0a0e1a 100%); position: sticky; top: 0; z-index: 30; }
+    .profile-area { display: flex; align-items: center; gap: 12px; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #00f0ff, #05ffb2); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #0a0e1a; font-size: 12px; }
+    .profile-text p:first-child { font-size: 11px; color: #64748b; text-transform: uppercase; }
+    .profile-text p:last-child { font-size: 14px; font-weight: 600; }
+    .mode-badge { background: rgba(0, 240, 255, 0.1); border: 1px solid #00f0ff; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #00f0ff; }
+    .countdown-box { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; border-radius: 6px; cursor: pointer; }
+    .countdown-time { font-size: 14px; font-weight: 700; color: #ff2e93; font-family: monospace; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .dashboard { padding: 32px 0; }
+    .dashboard-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    .dashboard-subtitle { color: #64748b; font-size: 14px; margin-bottom: 32px; }
+    .tabs { display: flex; gap: 12px; margin-bottom: 32px; border-bottom: 1px solid #1e293b; padding-bottom: 16px; overflow-x: auto; }
+    .tab-btn { background: none; border: none; color: #64748b; cursor: pointer; font-weight: 600; font-size: 13px; padding: 8px 12px; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .tab-btn.active { color: #00f0ff; border-bottom-color: #00f0ff; }
+    .tab-content { display: none; } .tab-content.active { display: block; }
+    .subjects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 40px; }
+    .subject-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 8px; padding: 20px; cursor: pointer; animation: slideIn 0.6s ease-out forwards; opacity: 0; }
+    .subject-card:hover { border-color: #00f0ff; box-shadow: 0 0 25px rgba(0, 240, 255, 0.15); transform: translateY(-2px); }
+    .subject-code { font-size: 11px; color: #00f0ff; font-weight: 700; margin-bottom: 6px; }
+    .subject-name { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+    .progress-bar { height: 3px; background: #1e293b; border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #00f0ff, #05ffb2); }
+    .exam-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .exam-card:hover { border-color: #00f0ff; background: rgba(0, 240, 255, 0.05); }
+    .exam-info h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .exam-info p { font-size: 11px; color: #64748b; }
+    .exam-badge { background: rgba(0, 240, 255, 0.1); border: 1px solid #00f0ff; color: #00f0ff; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .payment-card { background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(5, 255, 178, 0.1)); border: 1px solid #00f0ff; border-radius: 8px; padding: 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .payment-info h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .payment-info p { font-size: 12px; color: #64748b; }
+    .unlock-btn { background: #00f0ff; color: #0a0e1a; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 700; font-size: 12px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; text-align: center; }
+    .stat-number { font-size: 24px; font-weight: 700; color: #00f0ff; margin-bottom: 4px; }
+    .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; }
+    .summary-box { background: #0f1626; border: 1px solid #1e293b; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+    .summary-content { font-size: 13px; line-height: 1.8; color: #94a3b8; white-space: pre-wrap; }
+    .question-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+    .q-number { font-size: 11px; color: #00f0ff; font-weight: 700; margin-bottom: 8px; }
+    .q-text { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+    .options { display: flex; flex-direction: column; gap: 10px; }
+    .option { background: transparent; border: 1.5px solid #1e293b; padding: 12px; border-radius: 6px; text-align: left; cursor: pointer; color: #f1f5f9; font-size: 13px; }
+    .option:hover { border-color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+    .option.correct { border-color: #05ffb2; background: rgba(5, 255, 178, 0.1); color: #05ffb2; }
+    .option.incorrect { border-color: #ff2e93; background: rgba(255, 46, 147, 0.1); color: #ff2e93; }
+    .conversion-guide { background: rgba(0, 240, 255, 0.05); border: 1px solid #00f0ff; padding: 12px; margin-top: 12px; border-radius: 6px; font-size: 12px; }
+    .submit-btn { width: 100%; padding: 14px; background: linear-gradient(90deg, #00f0ff, #05ffb2); color: #0a0e1a; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; margin-top: 16px; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; z-index: 50; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
+    .modal-overlay.modal-open { opacity: 1; visibility: visible; }
+    .modal { background: #0f1626; border: 1px solid #1e293b; border-radius: 12px; padding: 32px; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+    .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; color: #00f0ff; }
+    .logout-btn { background: transparent; border: 1px solid #1e293b; color: #64748b; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .guide-btn { background: rgba(0, 240, 255, 0.1); border: 1px solid #00f0ff; color: #00f0ff; padding: 8px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: 600; }
+    .guide-step { background: #060913; border: 1px solid #1e293b; padding: 16px; margin-bottom: 12px; border-radius: 6px; }
+    .guide-step-title { font-size: 14px; font-weight: 700; color: #00f0ff; margin-bottom: 8px; }
+    .guide-step-text { font-size: 12px; color: #94a3b8; line-height: 1.6; }
+    .float-btn { position: fixed; bottom: 32px; right: 32px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #00f0ff, #05ffb2); border: none; color: #0a0e1a; font-size: 24px; cursor: pointer; font-weight: 700; z-index: 40; display: flex; align-items: center; justify-content: center; }
+  </style>
+</head>
+<body>
+  <!-- AUTH VIEW -->
+  <div id="authView" class="view active">
+    <div class="auth-container">
+      <div class="auth-card">
+        <h1 class="auth-title">🇿🇲 AURA ACADEMY</h1>
+        <p class="auth-subtitle">Zambian Premium Study Terminal</p>
+        <div class="error-msg" id="errorMsg"></div>
+        <form id="authForm">
+          <div id="signupFields">
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input type="text" id="fullName" placeholder="Your name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" id="authEmail" placeholder="your@email.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" id="authPassword" placeholder="Min 6 characters" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">University</label>
+              <select id="university" required>
+                <option value="">Select University</option>
+                <option value="UNZA">UNZA (Lusaka)</option>
+                <option value="CBU">CBU (Copperbelt)</option>
+                <option value="Mulungushi">Mulungushi University</option>
+                <option value="ZAOU">Zambia Open University</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Program</label>
+              <select id="program" required>
+                <option value="">Select Program</option>
+                <option value="Engineering">🔧 Engineering</option>
+                <option value="Medicine">🏥 Medicine</option>
+                <option value="Law">⚖️ Law</option>
+                <option value="Science">🔬 Science</option>
+                <option value="Business">💼 Business</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Year</label>
+              <select id="year" required>
+                <option value="">Select Year</option>
+                <option value="1">Year 1</option>
+                <option value="2">Year 2</option>
+                <option value="3">Year 3</option>
+                <option value="4">Year 4</option>
+              </select>
+            </div>
+          </div>
+          <div id="signinFields" style="display: none;">
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" id="signinEmail" placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" id="signinPassword" placeholder="Your password">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-cyan" id="submitBtn">Create Account</button>
+        </form>
+        <div class="toggle-auth">
+          Already have an account? <button type="button" onclick="app.toggleAuthMode()">Sign In</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP VIEW -->
+  <div id="mainView" class="view">
+    <div id="paymentModal"></div>
+    <div class="header">
+      <div class="profile-area">
+        <div class="avatar" id="initials">T</div>
+        <div class="profile-text">
+          <p id="modeText">STUDENT MODE</p>
+          <p id="studentNameDisplay">Tekaru</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="mode-badge" id="modeBadge">📚 Engineering • Year 1</div>
+        <div class="countdown-box" id="countdownBox" onclick="app.showPaymentModal()">
+          <div class="countdown-time" id="countdownDisplay">7d 0h</div>
+        </div>
+        <button class="logout-btn" onclick="app.logout()">Logout</button>
+      </div>
+    </div>
+    <div class="container">
+      <div class="dashboard">
+        <h1 class="dashboard-title">🇿🇲 AURA ACADEMY</h1>
+        <p class="dashboard-subtitle" id="dashSubtitle">Premium Zambian Study Terminal</p>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="app.switchTab('courses')">📚 Courses</button>
+          <button class="tab-btn" onclick="app.switchTab('papers')">📄 Papers</button>
+          <button class="tab-btn" id="ceoTabBtn" style="display: none;" onclick="app.switchTab('ceo')">👑 CEO</button>
+          <button class="guide-btn" onclick="app.showGuide()" style="margin-left: auto;">ℹ️ Guide</button>
+        </div>
+        <div id="coursesTab" class="tab-content active">
+          <div class="subjects-grid" id="subjectsGrid"></div>
+        </div>
+        <div id="papersTab" class="tab-content">
+          <div id="pastPapersContainer"></div>
+        </div>
+        <div id="ceoTab" class="tab-content">
+          <div id="ceoContainer"></div>
+        </div>
+      </div>
+    </div>
+    <button class="float-btn" onclick="alert('📚 Upload feature coming soon!')">+</button>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://fcmbhxwhfxklwxvggech.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_BueIEB3eheoTz85QFm0i5w_gpFvXqoo';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ZAMBIAN COURSES WITH MY KNOWLEDGE
+    const ZAMBIAN_PROGRAMS = {
+      Engineering: {
+        Year1: {
+          UNZA: [
+            { code: 'MATH101', name: 'Calculus I', summary: '📚 CALCULUS FUNDAMENTALS\n\n⚡ Key Concepts:\n• Limits: Understanding function behavior as x approaches values\n• Derivatives: Rate of change (slope at any point)\n• Integrals: Finding area under curves\n\n📐 Essential Formulas:\n• Power Rule: d/dx(x^n) = n·x^(n-1)\n• Chain Rule: d/dx(f(g(x))) = f\'(g(x))·g\'(x)\n• Integral: ∫x^n dx = x^(n+1)/(n+1) + C\n\n🔧 Zambian Applications:\n• Bridge design in Zambia (ZESCO projects)\n• Mining calculations in Copperbelt\n• Dam engineering (Kariba, Kafue)\n\n💡 Study Tip: Master power rule first, then chain rule. Practice daily!' },
+            { code: 'PHYS101', name: 'Physics I - Mechanics', summary: '📚 MECHANICS & MOTION\n\n⚡ Newton\'s Laws:\n• Law 1: Object at rest stays at rest\n• Law 2: F = ma (Force = Mass × Acceleration)\n• Law 3: Every action has equal opposite reaction\n\n📏 SI Units (Important!):\n• Force: Newtons (N) = kg·m/s²\n• Acceleration: m/s²\n• Velocity: m/s\n• 1 km/h = 0.278 m/s\n\n🔧 Zambian Real-World:\n• Mining truck forces (Copperbelt)\n• Vehicle crashes on Zambian roads\n• Dam water pressure calculations\n\n💡 Tip: Always convert to SI first!' },
+            { code: 'CHEM101', name: 'Chemistry I - Structure', summary: '📚 ATOMIC STRUCTURE & BONDING\n\n⚡ Key Concepts:\n• Atoms: Protons (+), Neutrons (0), Electrons (-)\n• Periodic Table: 118 elements organized by properties\n• Bonding: Ionic (electron transfer), Covalent (sharing), Metallic\n\n📐 Important Values:\n• Avogadro\'s number: 6.022 × 10²³\n• Molar mass: measured in g/mol\n• Electron charge: 1.602 × 10⁻¹⁹ C\n\n🔧 Zambian Applications:\n• Copper mining chemistry (Copperbelt)\n• Water treatment in Lusaka\n• Metal extraction processes\n\n💡 Study Tip: Draw electron configurations to visualize!' }
+          ],
+          CBU: [
+            { code: 'MATH101', name: 'Calculus I', summary: '📚 CALCULUS FUNDAMENTALS\n\n⚡ Key Concepts:\n• Limits: Understanding function behavior\n• Derivatives: Rate of change\n• Integrals: Area calculations\n\n📐 Formulas:\n• Power Rule: d/dx(x^n) = n·x^(n-1)\n• Chain Rule: d/dx(f(g)) = f\'(g)·g\'\n• ∫x^n dx = x^(n+1)/(n+1) + C\n\n🔧 Uses:\n• Engineering design optimization\n• Mining calculations\n\n💡 Tip: Practice with local examples!' }
+          ]
+        },
+        Year2: {
+          UNZA: [
+            { code: 'EEE211', name: 'Circuit Theory', summary: '📚 AC CIRCUITS & IMPEDANCE\n\n⚡ Concepts:\n• Voltage & Current in AC\n• Impedance (Z): Total opposition\n• Phase angle: Time difference\n\n📐 Formulas:\n• V = I·Z (Ohm\'s Law - AC)\n• Z = R + jX (Resistance + Reactance)\n• |Z| = √(R² + X²)\n\n🔧 Zambian Power System:\n• ZESCO power transmission\n• Grid voltage regulation\n• Transformer design\n\n💡 Tip: AC circuits use complex numbers!' }
+          ]
+        },
+        Year3: { UNZA: [], CBU: [] },
+        Year4: { UNZA: [], CBU: [] }
+      },
+      Medicine: {
+        Year1: {
+          UNZA: [
+            { code: 'ANAT101', name: 'Human Anatomy', summary: '📚 HUMAN BODY SYSTEMS\n\n⚡ Major Systems:\n• Skeletal: 206 bones in adults\n• Muscular: 650+ muscles\n• Cardiovascular: Heart pumps blood\n• Nervous: Brain & spinal cord\n\n📏 Key Measurements (Adult):\n• Heart: 12 cm long, 250g\n• Blood volume: 5-6 liters\n• Bone density: 1000-2000 kg/m³\n\n🔧 Zambian Health Context:\n• Malaria effects on body\n• Malnutrition impact\n• HIV/AIDS biology\n\n💡 Tip: Use models, draw organs, label them!' },
+            { code: 'BIO101', name: 'Biology I - Cells', summary: '📚 CELLULAR BIOLOGY\n\n⚡ Cell Types:\n• Prokaryotic: Bacteria (no nucleus)\n• Eukaryotic: Animals, plants (has nucleus)\n• Organelles: Mitochondria, ER, Golgi, Ribosomes\n\n📐 Cell Processes:\n• Photosynthesis: 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂\n• Respiration: C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O\n• Mitosis: Cell division\n\n🔧 Zambian Biology:\n• Tropical disease organisms\n• Nutrient deficiency diseases\n• Local plant/animal biology\n\n💡 Tip: Remember: "Mnemonic for organelles!"' }
+          ]
+        },
+        Year2: { UNZA: [], CBU: [] },
+        Year3: { UNZA: [] },
+        Year4: { UNZA: [] }
+      },
+      Law: {
+        Year1: {
+          UNZA: [
+            { code: 'LAW101', name: 'Constitutional Law', summary: '📚 ZAMBIAN CONSTITUTION\n\n⚡ Key Principles:\n• Separation of Powers: Executive, Legislative, Judicial\n• Rule of Law: Everyone equal before law\n• Human Rights: Freedoms & protections\n• Democracy: People\'s voice\n\n📖 Zambian Context:\n• Constitution of Zambia 1991 (amended)\n• 10 provinces governance\n• Presidential system\n\n🔧 Real Cases:\n• Electoral disputes (2020-2021)\n• Land rights cases\n• Constitutional amendments\n\n💡 Tip: Read actual Zambian court cases!' },
+            { code: 'LAW102', name: 'Criminal Law', summary: '📚 CRIMINAL LAW BASICS\n\n⚡ Key Concepts:\n• Mens rea: Guilty mind\n• Actus reus: Guilty act\n• Burden of proof: Beyond reasonable doubt\n• Punishment: Aims of sentencing\n\n📖 Zambian Criminal Code:\n• Theft (Articles)\n• Assault\n• Murder vs Manslaughter\n• Rape laws\n\n🔧 Zambian Court System:\n• Magistrate Courts (minor crimes)\n• High Court (serious crimes)\n• Supreme Court (appeals)\n\n💡 Tip: Understand both elements (mens + actus)!' }
+          ]
+        },
+        Year2: { UNZA: [] },
+        Year3: { UNZA: [] },
+        Year4: { UNZA: [] }
+      },
+      Science: {
+        Year1: {
+          UNZA: [
+            { code: 'PHYS101', name: 'Physics - Mechanics', summary: '📚 MECHANICS & FORCES\n\n⚡ Newton\'s Laws:\n• Law 1: F = 0 → Constant velocity\n• Law 2: F = ma → Acceleration\n• Law 3: Action = Reaction\n\n📏 SI Unit Conversions:\n• 1 km/h = 0.278 m/s\n• 1 N = 1 kg·m/s²\n• 1 J = 1 N·m\n• 1 W = 1 J/s\n\n🔧 Zambian Examples:\n• Vehicle speeds on highways\n• Mining equipment forces\n• Water pressure in pipes\n\n💡 Tip: Always use SI units!' },
+            { code: 'CHEM101', name: 'Chemistry - Atomic', summary: '📚 ATOMIC STRUCTURE\n\n⚡ Particles:\n• Protons: Positive charge\n• Neutrons: No charge\n• Electrons: Negative charge\n\n📐 Key Values:\n• Atomic number: Number of protons\n• Mass number: Protons + Neutrons\n• Molar mass: g/mol\n• 1 mole = 6.022 × 10²³ particles\n\n🔧 Zambian Context:\n• Copper (Cu) - Atomic #29\n• Iron (Fe) - Atomic #26\n• Gold (Au) - Atomic #79\n\n💡 Tip: Memorize periodic table trends!' }
+          ]
+        },
+        Year2: { UNZA: [] },
+        Year3: { UNZA: [] },
+        Year4: { UNZA: [] }
+      },
+      Business: {
+        Year1: {
+          UNZA: [
+            { code: 'ACC101', name: 'Accounting Basics', summary: '📚 ACCOUNTING FUNDAMENTALS\n\n⚡ Concepts:\n• Assets: What company owns\n• Liabilities: What company owes\n• Equity: Owner\'s stake\n• Equation: Assets = Liabilities + Equity\n\n📖 Accounting Cycle:\n• Record transactions\n• Classify accounts\n• Prepare financial statements\n• Report to stakeholders\n\n🔧 Zambian Business:\n• VAT (Value Added Tax) in Zambia\n• Corporate tax rates\n• ZICTA regulations\n\n💡 Tip: Assets on left, Liabilities + Equity on right!' }
+          ],
+          CBU: [
+            { code: 'ACC101', name: 'Accounting Basics', summary: '📚 ACCOUNTING FUNDAMENTALS\n\n⚡ Concepts:\n• Assets: Company resources\n• Liabilities: Company debts\n• Equity: Owner\'s investment\n• A = L + E\n\n📖 Process:\n• Record → Classify → Report\n\n🔧 Zambia Business:\n• Tax compliance\n• Financial reporting\n\n💡 Tip: Balance the equation!' }
+          ]
+        },
+        Year2: { UNZA: [], CBU: [] },
+        Year3: { UNZA: [] },
+        Year4: { UNZA: [] }
+      }
+    };
+
+    // UNIVERSITY-LOCKED PAST PAPERS
+    const PAST_PAPERS_BY_UNIVERSITY = {
+      UNZA: [
+        { subject: 'Physics 101', year: 2023, yearLevel: 1, questions: 45, badge: 'UNZA 2023 Y1' },
+        { subject: 'Physics 101', year: 2022, yearLevel: 1, questions: 42, badge: 'UNZA 2022 Y1' },
+        { subject: 'Math 101', year: 2023, yearLevel: 1, questions: 50, badge: 'UNZA 2023 Y1' },
+        { subject: 'Chemistry 101', year: 2023, yearLevel: 1, questions: 40, badge: 'UNZA 2023 Y1' }
+      ],
+      CBU: [
+        { subject: 'Physics 101', year: 2023, yearLevel: 1, questions: 48, badge: 'CBU 2023 Y1' },
+        { subject: 'Math 101', year: 2023, yearLevel: 1, questions: 45, badge: 'CBU 2023 Y1' }
+      ],
+      Mulungushi: [
+        { subject: 'Engineering Math', year: 2023, yearLevel: 1, questions: 40, badge: 'Mulungushi 2023 Y1' }
+      ],
+      ZAOU: [
+        { subject: 'Business Accounting', year: 2023, yearLevel: 1, questions: 50, badge: 'ZAOU 2023 Y1' }
+      ]
+    };
+
+    class AuraAcademy {
+      constructor() {
+        this.authMode = 'signup';
+        this.user = null;
+        this.profile = null;
+        this.isCEO = false;
+        this.subscriptionEnd = null;
+        this.checkAuth();
+        setInterval(() => this.updateCountdown(), 1000);
+      }
+
+      async checkAuth() {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          this.user = data.session.user;
+          await this.loadProfile();
+          this.showMainApp();
+        }
+      }
+
+      async loadProfile() {
+        const { data } = await supabase.from('aura_profiles').select('*').eq('user_id', this.user.id).single().catch(() => null);
+        if (data) {
+          this.profile = data;
+          this.subscriptionEnd = new Date(data.subscription_end);
+          this.isCEO = data.is_ceo || false;
+        } else {
+          this.profile = { full_name: 'Student', program: 'Engineering', year: '1', university: 'UNZA' };
+          this.subscriptionEnd = new Date(Date.now() + 7*24*60*60*1000);
+        }
+      }
+
+      toggleAuthMode() {
+        this.authMode = this.authMode === 'signup' ? 'signin' : 'signup';
+        document.getElementById('signupFields').style.display = this.authMode === 'signup' ? 'block' : 'none';
+        document.getElementById('signinFields').style.display = this.authMode === 'signin' ? 'block' : 'none';
+      }
+
+      async handleAuth(e) {
+        e.preventDefault();
+        const errorMsg = document.getElementById('errorMsg');
+        errorMsg.classList.remove('show');
+        try {
+          if (this.authMode === 'signup') {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            const fullName = document.getElementById('fullName').value;
+            const program = document.getElementById('program').value;
+            const year = document.getElementById('year').value;
+            const university = document.getElementById('university').value;
+            const isCEO = email === 'Mwewadavid781@gmail.com';
+
+            const { error: signupError } = await supabase.auth.signUp({ email, password });
+            if (signupError) throw signupError;
+
+            const { data } = await supabase.auth.getSession();
+            this.user = data.session.user;
+
+            const subEnd = new Date(Date.now() + 7*24*60*60*1000).toISOString();
+            await supabase.from('aura_profiles').insert({
+              user_id: this.user.id,
+              full_name: fullName,
+              program,
+              year,
+              university,
+              subscription_end: subEnd,
+              is_ceo: isCEO
+            }).catch(() => {});
+
+            await this.loadProfile();
+            this.showMainApp();
+          } else {
+            const email = document.getElementById('signinEmail').value;
+            const password = document.getElementById('signinPassword').value;
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+            const { data } = await supabase.auth.getSession();
+            this.user = data.session.user;
+            await this.loadProfile();
+            this.showMainApp();
+          }
+        } catch (error) {
+          errorMsg.textContent = error.message;
+          errorMsg.classList.add('show');
+        }
+      }
+
+      showMainApp() {
+        document.getElementById('authView').classList.remove('active');
+        document.getElementById('mainView').classList.add('active');
+        document.getElementById('studentNameDisplay').textContent = this.profile.full_name;
+        document.getElementById('initials').textContent = this.profile.full_name.substring(0, 2).toUpperCase();
+        document.getElementById('modeBadge').textContent = `📚 ${this.profile.program} • Year ${this.profile.year} • ${this.profile.university}`;
+        if (this.isCEO) {
+          document.getElementById('modeText').textContent = 'CEO + STUDENT';
+          document.getElementById('ceoTabBtn').style.display = 'block';
+        }
+        this.renderCourses();
+        this.renderPastPapers();
+        if (this.isCEO) this.renderCEOPanel();
+      }
+
+      renderCourses() {
+        const yearKey = `Year${this.profile.year}`;
+        const progData = ZAMBIAN_PROGRAMS[this.profile.program];
+        const yearData = progData?.[yearKey];
+        const courses = yearData?.[this.profile.university] || [];
+
+        const grid = document.getElementById('subjectsGrid');
+        grid.innerHTML = courses.map((course, idx) => `
+          <div class="subject-card" style="animation-delay: ${0.15 + idx*0.1}s" onclick="app.showCourseSummary('${course.code}', '${course.name}', \`${course.summary}\`)">
+            <div class="subject-code">${course.code}</div>
+            <div class="subject-name">${course.name}</div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 65%"></div></div>
+          </div>
+        `).join('');
+
+        if (courses.length === 0) {
+          grid.innerHTML = '<p style="color: #64748b; grid-column: 1/-1;">No courses available for your program/year/university yet.</p>';
+        }
+      }
+
+      showCourseSummary(code, name, summary) {
+        const modal = document.getElementById('paymentModal');
+        modal.innerHTML = `
+          <div class="modal-overlay modal-open" onclick="if(event.target===this) document.getElementById('paymentModal').innerHTML=''">
+            <div class="modal">
+              <h2 class="modal-title">${code}: ${name}</h2>
+              <div class="summary-box"><div class="summary-content">${summary}</div></div>
+              <button class="submit-btn" onclick="app.startExam('${code}')">Start 30 Question Exam</button>
+            </div>
+          </div>
+        `;
+      }
+
+      startExam(courseCode) {
+        const modal = document.getElementById('paymentModal');
+        modal.innerHTML = `
+          <div class="modal-overlay modal-open" onclick="if(event.target===this) document.getElementById('paymentModal').innerHTML=''">
+            <div class="modal" style="max-height: 90vh;">
+              <h2 class="modal-title">${courseCode} Practice Exam</h2>
+              <div style="max-height: 70vh; overflow-y: auto; background: #060913; padding: 16px; border-radius: 6px;">
+                <p style="color: #64748b; text-align: center;">Coming soon: 30 interactive questions will appear here with instant feedback!</p>
+              </div>
+              <button class="submit-btn" onclick="alert('✅ Feature launching soon!')">Start Exam</button>
+            </div>
+          </div>
+        `;
+      }
+
+      renderPastPapers() {
+        const container = document.getElementById('pastPapersContainer');
+        const papers = PAST_PAPERS_BY_UNIVERSITY[this.profile.university] || [];
+        
+        if (papers.length === 0) {
+          container.innerHTML = '<p style="color: #64748b;">No past papers available yet for your university.</p>';
+          return;
+        }
+
+        container.innerHTML = `
+          <h3 class="dashboard-title">📄 Past Papers - ${this.profile.university}</h3>
+          <div>${papers.map(p => `
+            <div class="exam-card">
+              <div class="exam-info">
+                <h4>${p.subject} - ${p.badge}</h4>
+                <p>${p.questions} questions</p>
+              </div>
+              <button class="exam-badge" onclick="alert('Starting exam...')">Start</button>
+            </div>
+          `).join('')}</div>
+        `;
+      }
+
+      renderCEOPanel() {
+        const container = document.getElementById('ceoContainer');
+        container.innerHTML = `
+          <h3 class="dashboard-title">👑 CEO CONTROL PANEL</h3>
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-number">K1,000</div><div class="stat-label">This Week</div></div>
+            <div class="stat-card"><div class="stat-number">25</div><div class="stat-label">Active</div></div>
+            <div class="stat-card"><div class="stat-number">5</div><div class="stat-label">Waiting</div></div>
+          </div>
+          <h4 style="margin-top: 24px; margin-bottom: 12px;">Students Waiting Unlock</h4>
+          <div class="payment-card">
+            <div class="payment-info"><h3>Sarah</h3><p>Paid K10</p></div>
+            <button class="unlock-btn" onclick="alert('✅ Sarah unlocked!')">UNLOCK</button>
+          </div>
+        `;
+      }
+
+      showGuide() {
+        const modal = document.getElementById('paymentModal');
+        modal.innerHTML = `
+          <div class="modal-overlay modal-open" onclick="if(event.target===this) document.getElementById('paymentModal').innerHTML=''">
+            <div class="modal">
+              <h2 class="modal-title">📖 How to Use Aura</h2>
+              <div class="guide-step">
+                <div class="guide-step-title">1️⃣ Courses Tab</div>
+                <div class="guide-step-text">Click any course to see a summary with formulas and examples. Start the 30-question exam to test your knowledge.</div>
+              </div>
+              <div class="guide-step">
+                <div class="guide-step-title">2️⃣ Past Papers</div>
+                <div class="guide-step-text">Practice full exam papers from your university. Each university has different papers - we've matched them!</div>
+              </div>
+              <div class="guide-step">
+                <div class="guide-step-title">3️⃣ Payment (7 Days)</div>
+                <div class="guide-step-text">Click countdown timer. Send K10 to 0964969767. Message +260750109917 and Tekaru unlocks you!</div>
+              </div>
+              <button class="submit-btn" onclick="document.getElementById('paymentModal').innerHTML=''">Got it!</button>
+            </div>
+          </div>
+        `;
+      }
+
+      switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(tab + 'Tab').classList.add('active');
+      }
+
+      updateCountdown() {
+        const now = new Date();
+        const diff = this.subscriptionEnd - now;
+        const days = Math.floor(diff / (1000*60*60*24));
+        const hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+        const elem = document.getElementById('countdownDisplay');
+        if (elem) elem.textContent = `${Math.max(0, days)}d ${Math.max(0, hours)}h`;
+      }
+
+      showPaymentModal() {
+        const modal = document.getElementById('paymentModal');
+        modal.innerHTML = `
+          <div class="modal-overlay modal-open">
+            <div class="modal">
+              <h2 class="modal-title">💳 Renew Access</h2>
+              <p style="color: #64748b; margin-bottom: 20px;">K10 per week</p>
+              <div style="background: #0a0e1a; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="color: #00f0ff; margin-bottom: 8px;">📱 MTN Mobile Money:</h4>
+                <p style="color: #64748b;">Send to: <strong style="color: #05ffb2;">0964969767</strong></p>
+                <p style="color: #64748b;">Then WhatsApp: <strong style="color: #05ffb2;">+260750109917</strong></p>
+              </div>
+              <button class="submit-btn" onclick="window.open('https://wa.me/260750109917?text=I%20paid%20K10', '_blank')">📱 Contact on WhatsApp</button>
+            </div>
+          </div>
+        `;
+      }
+
+      async logout() {
+        await supabase.auth.signOut();
+        document.getElementById('mainView').classList.remove('active');
+        document.getElementById('authView').classList.add('active');
+      }
+    }
+
+    const app = new AuraAcademy();
+    document.getElementById('authForm').addEventListener('submit', (e) => app.handleAuth(e));
+  </script>
+</body>
+</html>

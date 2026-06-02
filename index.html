@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA ACADEMY - Zambian Study Terminal</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0e1a; color: #f1f5f9; }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .view { display: none; } .view.active { display: block; }
+    .auth-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(135deg, #0f1626 0%, #0a0e1a 100%); }
+    .auth-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 12px; padding: 32px; max-width: 400px; width: 100%; animation: slideIn 0.6s ease-out; }
+    .auth-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; color: #00f0ff; }
+    .auth-subtitle { font-size: 12px; color: #64748b; margin-bottom: 24px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; display: block; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #1e293b; border-radius: 6px; background: #060913; color: #f1f5f9; font-size: 14px; font-family: inherit; }
+    input:focus, select:focus { outline: none; border-color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 700; font-family: inherit; }
+    .btn-cyan { background: #00f0ff; color: #0a0e1a; }
+    .btn-cyan:hover { box-shadow: 0 0 30px rgba(0, 240, 255, 0.5); }
+    .error-msg { background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; color: #ff2e93; padding: 8px 12px; border-radius: 4px; font-size: 12px; margin-bottom: 16px; display: none; }
+    .error-msg.show { display: block; }
+    .toggle-auth { text-align: center; margin-top: 16px; font-size: 12px; color: #64748b; }
+    .toggle-auth button { background: none; border: none; color: #00f0ff; cursor: pointer; font-weight: 600; }
+    .header { padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; background: linear-gradient(180deg, #0f1626 0%, #0a0e1a 100%); position: sticky; top: 0; z-index: 30; }
+    .profile-area { display: flex; align-items: center; gap: 12px; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #00f0ff, #05ffb2); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #0a0e1a; font-size: 12px; }
+    .profile-text p:first-child { font-size: 11px; color: #64748b; text-transform: uppercase; }
+    .profile-text p:last-child { font-size: 14px; font-weight: 600; }
+    .mode-badge { background: rgba(0, 240, 255, 0.1); border: 1px solid #00f0ff; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #00f0ff; }
+    .countdown-box { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; border-radius: 6px; cursor: pointer; }
+    .countdown-time { font-size: 14px; font-weight: 700; color: #ff2e93; font-family: monospace; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .dashboard { padding: 32px 0; }
+    .dashboard-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    .tabs { display: flex; gap: 12px; margin-bottom: 32px; border-bottom: 1px solid #1e293b; padding-bottom: 16px; overflow-x: auto; }
+    .tab-btn { background: none; border: none; color: #64748b; cursor: pointer; font-weight: 600; font-size: 13px; padding: 8px 12px; border-bottom: 2px solid transparent; white-space: nowrap; }
+    .tab-btn.active { color: #00f0ff; border-bottom-color: #00f0ff; }
+    .tab-content { display: none; } .tab-content.active { display: block; }
+    .subjects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 40px; }
+    .subject-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 8px; padding: 20px; cursor: pointer; animation: slideIn 0.6s ease-out forwards; opacity: 0; }
+    .subject-card:hover { border-color: #00f0ff; }
+    .subject-code { font-size: 11px; color: #00f0ff; font-weight: 700; margin-bottom: 6px; }
+    .subject-name { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+    .progress-bar { height: 3px; background: #1e293b; border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #00f0ff, #05ffb2); }
+    .exam-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; margin-bottom: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .exam-card:hover { border-color: #00f0ff; background: rgba(0, 240, 255, 0.05); }
+    .exam-info h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .exam-info p { font-size: 11px; color: #64748b; }
+    .exam-badge { background: rgba(0, 240, 255, 0.1); border: 1px solid #00f0ff; color: #00f0ff; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .payment-card { background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(5, 255, 178, 0.1)); border: 1px solid #00f0ff; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+    .unlock-btn { background: #00f0ff; color: #0a0e1a; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 700; font-size: 12px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 8px; padding: 16px; text-align: center; }
+    .stat-number { font-size: 24px; font-weight: 700; color: #00f0ff; margin-bottom: 4px; }
+    .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; }
+    .summary-box { background: #0f1626; border: 1px solid #1e293b; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+    .summary-content { font-size: 13px; line-height: 1.8; color: #94a3b8; white-space: pre-wrap; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.85); display: flex; align-items: center; justify-content: center; z-index: 50; opacity: 0; visibility: hidden; }
+    .modal-overlay.modal-open { opacity: 1; visibility: visible; }
+    .modal { background: #0f1626; border: 1px solid #1e293b; border-radius: 12px; padding: 32px; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+    .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; color: #00f0ff; }
+    .logout-btn { background: transparent; border: 1px solid #1e293b; color: #64748b; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .submit-btn { width: 100%; padding: 14px; background: linear-gradient(90deg, #00f0ff, #05ffb2); color: #0a0e1a; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div id="authView" class="view active">
+    <div class="auth-container">
+      <div class="auth-card">
+        <h1 class="auth-title">🇿🇲 AURA ACADEMY</h1>
+        <p class="auth-subtitle">Zambian Premium Study Terminal</p>
+        <div class="error-msg" id="errorMsg"></div>
+        <form id="authForm">
+          <div id="signupFields">
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input type="text" id="fullName" placeholder="Your name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" id="authEmail" placeholder="your@email.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" id="authPassword" placeholder="Min 6 characters" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">University</label>
+              <select id="university" required>
+                <option value="">Select University</option>
+                <option value="UNZA">UNZA (Lusaka)</option>
+                <option value="CBU">CBU (Copperbelt)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Program</label>
+              <select id="program" required>
+                <option value="">Select Program</option>
+                <option value="Engineering">🔧 Engineering</option>
+                <option value="Medicine">🏥 Medicine</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Year</label>
+              <select id="year" required>
+                <option value="">Select Year</option>
+                <option value="1">Year 1</option>
+                <option value="2">Year 2</option>
+              </select>
+            </div>
+          </div>
+          <div id="signinFields" style="display: none;">
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" id="signinEmail" placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" id="signinPassword" placeholder="Your password">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-cyan">Create Account</button>
+        </form>
+        <div class="toggle-auth">
+          Already have an account? <button type="button" onclick="app.toggleAuthMode()">Sign In</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainView" class="view">
+    <div id="paymentModal"></div>
+    <div class="header">
+      <div class="profile-area">
+        <div class="avatar" id="initials">T</div>
+        <div class="profile-text">
+          <p>STUDENT MODE</p>
+          <p id="studentNameDisplay">Student</p>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="mode-badge" id="modeBadge">📚 Program</div>
+        <button class="logout-btn" onclick="app.logout()">Logout</button>
+      </div>
+    </div>
+    <div class="container">
+      <div class="dashboard">
+        <h1 class="dashboard-title">🇿🇲 AURA ACADEMY</h1>
+        <div class="tabs">
+          <button class="tab-btn active" onclick="app.switchTab('courses')">📚 Courses</button>
+          <button class="tab-btn" onclick="app.switchTab('papers')">📄 Papers</button>
+        </div>
+        <div id="coursesTab" class="tab-content active">
+          <div id="subjectsGrid"></div>
+        </div>
+        <div id="papersTab" class="tab-content">
+          <div id="pastPapersContainer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://fcmbhxwhfxklwxvggech.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_BueIEB3eheoTz85QFm0i5w_gpFvXqoo';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const COURSES = {
+      Engineering: {
+        Year1: {
+          UNZA: [
+            { code: 'MATH101', name: 'Calculus I', summary: '📚 CALCULUS\n\n⚡ Topics:\n• Limits & derivatives\n• Integration\n• Applications\n\n🔧 Real Use:\n• Engineering design\n• Mining calculations\n\n💡 Tip: Master power rule!' },
+            { code: 'PHYS101', name: 'Physics I', summary: '📚 MECHANICS\n\n⚡ Topics:\n• Newton\'s Laws (F=ma)\n• Motion & forces\n• Energy\n\n📏 Conversions:\n• 1 km/h = 0.278 m/s\n\n🔧 Zambian Apps:\n• Mining forces\n• Vehicle dynamics\n\n💡 Tip: SI units always!' }
+          ],
+          CBU: [
+            { code: 'MATH101', name: 'Calculus I', summary: '📚 CALCULUS\n\nKey concepts for CBU students' }
+          ]
+        },
+        Year2: { UNZA: [], CBU: [] }
+      },
+      Medicine: {
+        Year1: {
+          UNZA: [
+            { code: 'ANAT101', name: 'Anatomy', summary: '📚 ANATOMY\n\n⚡ Systems:\n• Skeletal (206 bones)\n• Muscular (650+ muscles)\n• Cardiovascular\n\n🔧 Zambian Context:\n• Malaria effects\n• Malnutrition impact\n\n💡 Tip: Draw diagrams!' }
+          ]
+        },
+        Year2: { UNZA: [] }
+      }
+    };
+
+    const PAPERS = {
+      UNZA: [
+        { subject: 'Physics 101', year: 2023, q: 45, badge: 'UNZA 2023' },
+        { subject: 'Math 101', year: 2023, q: 50, badge: 'UNZA 2023' }
+      ],
+      CBU: [
+        { subject: 'Physics 101', year: 2023, q: 48, badge: 'CBU 2023' }
+      ]
+    };
+
+    class App {
+      constructor() {
+        this.user = null;
+        this.profile = null;
+        this.checkAuth();
+      }
+
+      async checkAuth() {
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (data.session) {
+            this.user = data.session.user;
+            await this.loadProfile();
+            this.showApp();
+          }
+        } catch (err) {
+          console.log('Auth check:', err.message);
+        }
+      }
+
+      async loadProfile() {
+        try {
+          const { data } = await supabase.from('aura_profiles').select('*').eq('user_id', this.user.id).single();
+          this.profile = data;
+        } catch {
+          this.profile = { full_name: 'Student', program: 'Engineering', year: '1', university: 'UNZA' };
+        }
+      }
+
+      toggleAuthMode() {
+        document.getElementById('signupFields').style.display = document.getElementById('signupFields').style.display === 'none' ? 'block' : 'none';
+        document.getElementById('signinFields').style.display = document.getElementById('signinFields').style.display === 'none' ? 'block' : 'none';
+      }
+
+      async handleAuth(e) {
+        e.preventDefault();
+        const err = document.getElementById('errorMsg');
+        err.classList.remove('show');
+
+        try {
+          const isSignup = document.getElementById('signupFields').style.display !== 'none';
+
+          if (isSignup) {
+            const { error } = await supabase.auth.signUp({
+              email: document.getElementById('authEmail').value,
+              password: document.getElementById('authPassword').value
+            });
+            if (error) throw error;
+
+            const { data } = await supabase.auth.getSession();
+            this.user = data.session.user;
+
+            await supabase.from('aura_profiles').insert({
+              user_id: this.user.id,
+              full_name: document.getElementById('fullName').value,
+              program: document.getElementById('program').value,
+              year: document.getElementById('year').value,
+              university: document.getElementById('university').value,
+              subscription_end: new Date(Date.now() + 7*24*60*60*1000).toISOString(),
+              is_ceo: false
+            });
+
+            await this.loadProfile();
+            this.showApp();
+          } else {
+            const { error } = await supabase.auth.signInWithPassword({
+              email: document.getElementById('signinEmail').value,
+              password: document.getElementById('signinPassword').value
+            });
+            if (error) throw error;
+
+            const { data } = await supabase.auth.getSession();
+            this.user = data.session.user;
+            await this.loadProfile();
+            this.showApp();
+          }
+        } catch (error) {
+          err.textContent = error.message;
+          err.classList.add('show');
+        }
+      }
+
+      showApp() {
+        document.getElementById('authView').classList.remove('active');
+        document.getElementById('mainView').classList.add('active');
+        document.getElementById('studentNameDisplay').textContent = this.profile.full_name;
+        document.getElementById('initials').textContent = this.profile.full_name[0];
+        document.getElementById('modeBadge').textContent = `📚 ${this.profile.program} • ${this.profile.university}`;
+        this.renderCourses();
+        this.renderPapers();
+      }
+
+      renderCourses() {
+        const courses = COURSES[this.profile.program]?.[`Year${this.profile.year}`]?.[this.profile.university] || [];
+        const html = courses.map((c, i) => `
+          <div class="subject-card" style="animation-delay: ${0.1*i}s" onclick="app.showCourse('${c.code}', '${c.name}', \`${c.summary}\`)">
+            <div class="subject-code">${c.code}</div>
+            <div class="subject-name">${c.name}</div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 65%"></div></div>
+          </div>
+        `).join('');
+        document.getElementById('subjectsGrid').innerHTML = html || '<p style="color: #64748b;">No courses yet</p>';
+      }
+
+      showCourse(code, name, summary) {
+        const modal = document.getElementById('paymentModal');
+        modal.innerHTML = `
+          <div class="modal-overlay modal-open" onclick="if(event.target===this) document.getElementById('paymentModal').innerHTML=''">
+            <div class="modal">
+              <h2 class="modal-title">${code}: ${name}</h2>
+              <div class="summary-box"><div class="summary-content">${summary}</div></div>
+              <button class="submit-btn" onclick="alert('✅ Exam feature coming soon!')">Start Exam</button>
+            </div>
+          </div>
+        `;
+      }
+
+      renderPapers() {
+        const papers = PAPERS[this.profile.university] || [];
+        const html = papers.map(p => `
+          <div class="exam-card">
+            <div class="exam-info"><h4>${p.subject}</h4><p>${p.q} questions • ${p.badge}</p></div>
+            <button class="exam-badge">Start</button>
+          </div>
+        `).join('');
+        document.getElementById('pastPapersContainer').innerHTML = html || '<p style="color: #64748b;">No papers yet</p>';
+      }
+
+      switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(tab + 'Tab').classList.add('active');
+      }
+
+      async logout() {
+        await supabase.auth.signOut();
+        document.getElementById('mainView').classList.remove('active');
+        document.getElementById('authView').classList.add('active');
+      }
+    }
+
+    const app = new App();
+    document.getElementById('authForm').addEventListener('submit', (e) => app.handleAuth(e));
+  </script>
+</body>
+</html>

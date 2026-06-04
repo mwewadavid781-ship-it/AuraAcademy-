@@ -86,53 +86,27 @@
         <div class="error-msg" id="errorMsg"></div>
         <div class="success-msg" id="successMsg"></div>
 
-        <div id="signupMode">
-          <form onsubmit="app.signup(event)">
-            <div class="form-group">
-              <label class="form-label">Name</label>
-              <input type="text" id="signupName" placeholder="Your name" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Email</label>
-              <input type="email" id="signupEmail" placeholder="email@example.com" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Password</label>
-              <input type="password" id="signupPassword" placeholder="Password (min 6)" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">University</label>
-              <select id="signupUni" required>
-                <option value="">Select University</option>
-                <option value="UNZA">UNZA</option>
-                <option value="CBU">CBU</option>
-                <option value="Mulungushi">Mulungushi</option>
-                <option value="LAMU">LAMU</option>
-              </select>
-            </div>
-            <button type="submit" class="btn btn-cyan">Create Account</button>
-          </form>
-          <div class="toggle-auth">
-            Have account? <button type="button" onclick="app.toggleAuth()">Sign In</button>
+        <form onsubmit="app.authenticate(event)">
+          <div class="form-group">
+            <label class="form-label">Name</label>
+            <input type="text" id="authName" placeholder="Your name" required>
           </div>
-        </div>
-
-        <div id="signinMode" style="display: none;">
-          <form onsubmit="app.signin(event)">
-            <div class="form-group">
-              <label class="form-label">Email</label>
-              <input type="email" id="signinEmail" placeholder="email@example.com" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Password</label>
-              <input type="password" id="signinPassword" placeholder="Password" required>
-            </div>
-            <button type="submit" class="btn btn-cyan">Sign In</button>
-          </form>
-          <div class="toggle-auth">
-            New user? <button type="button" onclick="app.toggleAuth()">Create Account</button>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="authEmail" placeholder="email@example.com" required>
           </div>
-        </div>
+          <div class="form-group">
+            <label class="form-label">University</label>
+            <select id="authUni" required>
+              <option value="">Select University</option>
+              <option value="UNZA">UNZA</option>
+              <option value="CBU">CBU</option>
+              <option value="Mulungushi">Mulungushi</option>
+              <option value="LAMU">LAMU</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-cyan">Enter AURA</button>
+        </form>
       </div>
     </div>
   </div>
@@ -293,111 +267,67 @@
         this.profile = null;
         this.currentUni = null;
         this.currentSchool = null;
-        this.checkAuth();
+        
+        // Check if already logged in from localStorage
+        const saved = localStorage.getItem('auraUser');
+        if (saved) {
+          this.user = { id: JSON.parse(saved).email };
+          this.profile = JSON.parse(saved);
+          this.showApp();
+        }
+        
         setInterval(() => this.updateCountdown(), 1000);
       }
 
-      async checkAuth() {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          this.user = session.user;
-          await this.loadProfile();
-          this.showApp();
-        }
-      }
-
-      async loadProfile() {
-        const { data, error } = await supabase
-          .from('aura_profiles')
-          .select('*')
-          .eq('user_id', this.user.id)
-          .single();
-
-        if (data) {
-          this.profile = data;
-        }
-      }
-
-      toggleAuth() {
-        document.getElementById('signupMode').style.display = document.getElementById('signupMode').style.display === 'none' ? 'block' : 'none';
-        document.getElementById('signinMode').style.display = document.getElementById('signinMode').style.display === 'none' ? 'block' : 'none';
-      }
-
-      async signup(e) {
+      async authenticate(e) {
         e.preventDefault();
         const err = document.getElementById('errorMsg');
         const success = document.getElementById('successMsg');
         err.classList.remove('show');
         success.classList.remove('show');
 
-        const name = document.getElementById('signupName').value;
-        const email = document.getElementById('signupEmail').value;
-        const password = document.getElementById('signupPassword').value;
-        const uni = document.getElementById('signupUni').value;
+        const name = document.getElementById('authName').value;
+        const email = document.getElementById('authEmail').value;
+        const uni = document.getElementById('authUni').value;
 
-        if (!name || !email || !password || !uni) {
+        if (!name || !email || !uni) {
           err.textContent = 'Fill all fields!';
           err.classList.add('show');
           return;
         }
 
         try {
-          const { data: { user }, error: authError } = await supabase.auth.signUp({
-            email,
-            password
-          });
+          // Simple auth - just use email as key
+          // Store locally first
+          const userData = { name, email, uni, id: email, isCEO: email === 'Mwewadavid781@gmail.com' };
+          localStorage.setItem('auraUser', JSON.stringify(userData));
 
-          if (authError) throw authError;
-
+          // Sync to Supabase
           const subscriptionEnd = new Date();
           subscriptionEnd.setDate(subscriptionEnd.getDate() + 7);
 
-          const { error: profileError } = await supabase
+          const { error: upsertError } = await supabase
             .from('aura_profiles')
-            .insert({
-              user_id: user.id,
+            .upsert({
+              user_id: email,
               name,
               email,
               university: uni,
               subscription_end: subscriptionEnd.toISOString(),
               is_ceo: email === 'Mwewadavid781@gmail.com'
-            });
+            }, { onConflict: 'user_id' });
 
-          if (profileError) throw profileError;
+          if (upsertError) console.log('Sync note:', upsertError);
 
-          success.textContent = '✅ Account created! Check email to confirm.';
+          this.user = { id: email, email };
+          this.profile = { name, email, university: uni, subscription_end: subscriptionEnd.toISOString(), is_ceo: email === 'Mwewadavid781@gmail.com' };
+          
+          success.textContent = '✅ Welcome to AURA!';
           success.classList.add('show');
 
           setTimeout(() => {
-            this.user = user;
-            this.loadProfile();
             this.showApp();
-          }, 2000);
-        } catch (error) {
-          err.textContent = error.message;
-          err.classList.add('show');
-        }
-      }
-
-      async signin(e) {
-        e.preventDefault();
-        const err = document.getElementById('errorMsg');
-        err.classList.remove('show');
-
-        const email = document.getElementById('signinEmail').value;
-        const password = document.getElementById('signinPassword').value;
-
-        try {
-          const { data: { user }, error } = await supabase.auth.signInWithPassword({
-            email,
-            password
-          });
-
-          if (error) throw error;
-
-          this.user = user;
-          await this.loadProfile();
-          this.showApp();
+          }, 500);
         } catch (error) {
           err.textContent = error.message;
           err.classList.add('show');
@@ -407,11 +337,11 @@
       showApp() {
         document.getElementById('authView').classList.remove('active');
         document.getElementById('appView').classList.add('active');
-        document.getElementById('profileName').textContent = this.profile?.name || 'Student';
-        document.getElementById('profileUni').textContent = this.profile?.university || 'University';
-        document.getElementById('welcomeMsg').textContent = `Hi ${this.profile?.name}! Welcome to AURA`;
+        document.getElementById('profileName').textContent = this.profile.name || 'Student';
+        document.getElementById('profileUni').textContent = this.profile.university || 'University';
+        document.getElementById('welcomeMsg').textContent = `Hi ${this.profile.name}! Welcome to AURA`;
 
-        if (this.profile?.is_ceo) {
+        if (this.profile.isCEO) {
           document.getElementById('ceoNavBtn').style.display = 'flex';
         }
 
@@ -571,15 +501,17 @@
       }
 
       updateCountdown() {
-        if (!this.profile) return;
+        if (!this.profile || !this.profile.subscription_end) return;
         const diff = new Date(this.profile.subscription_end) - Date.now();
         const days = Math.floor(diff / (1000*60*60*24));
         const hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
-        document.getElementById('countdownText').textContent = `${Math.max(0, days)}d ${Math.max(0, hours)}h`;
-
+        
         if (days < 0) {
           document.getElementById('countdownBox').style.background = 'rgba(255, 46, 147, 0.3)';
           document.getElementById('countdownText').textContent = 'LOCKED';
+        } else {
+          document.getElementById('countdownBox').style.background = 'rgba(255, 46, 147, 0.1)';
+          document.getElementById('countdownText').textContent = `${days}d ${hours}h`;
         }
       }
 
@@ -599,10 +531,12 @@
       }
 
       async logout() {
-        await supabase.auth.signOut();
+        localStorage.removeItem('auraUser');
         document.getElementById('appView').classList.remove('active');
         document.getElementById('authView').classList.add('active');
-        window.location.reload();
+        document.getElementById('authName').value = '';
+        document.getElementById('authEmail').value = '';
+        document.getElementById('authUni').value = '';
       }
     }
 

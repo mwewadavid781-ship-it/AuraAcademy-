@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA ACADEMY - Zambian University Study Platform</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0e1a; color: #f1f5f9; }
+    .view { display: none; } .view.active { display: block; }
+    .auth-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #0f1626 0%, #0a0e1a 100%); }
+    .auth-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 12px; padding: 28px; max-width: 380px; width: 100%; }
+    .auth-title { font-size: 26px; font-weight: 700; margin-bottom: 6px; color: #00f0ff; }
+    .auth-subtitle { font-size: 11px; color: #64748b; margin-bottom: 20px; }
+    .form-group { margin-bottom: 12px; }
+    .form-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; display: block; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #1e293b; border-radius: 6px; background: #060913; color: #f1f5f9; font-size: 13px; }
+    input:focus, select:focus { outline: none; border-color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+    .btn { width: 100%; padding: 11px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 700; transition: all 0.3s; }
+    .btn-cyan { background: #00f0ff; color: #0a0e1a; }
+    .btn-cyan:hover { box-shadow: 0 0 30px rgba(0, 240, 255, 0.5); }
+    .error-msg { background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; color: #ff2e93; padding: 8px; border-radius: 4px; font-size: 11px; margin-bottom: 12px; display: none; }
+    .error-msg.show { display: block; }
+    .success-msg { background: rgba(5, 255, 178, 0.1); border: 1px solid #05ffb2; color: #05ffb2; padding: 8px; border-radius: 4px; font-size: 11px; margin-bottom: 12px; display: none; }
+    .success-msg.show { display: block; }
+    .toggle-auth { text-align: center; margin-top: 14px; font-size: 11px; color: #64748b; }
+    .toggle-auth button { background: none; border: none; color: #00f0ff; cursor: pointer; font-weight: 600; }
+    .app-container { display: flex; flex-direction: column; height: 100vh; }
+    .header { padding: 14px 20px; border-bottom: 1px solid #1e293b; background: #0f1626; display: flex; justify-content: space-between; align-items: center; }
+    .header-title { font-size: 16px; font-weight: 700; color: #00f0ff; }
+    .countdown-box { background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; padding: 6px 10px; border-radius: 4px; font-size: 11px; color: #ff2e93; font-weight: 700; cursor: pointer; }
+    .content { flex: 1; overflow-y: auto; padding: 16px 20px 80px; }
+    .page { display: none; } .page.active { display: block; }
+    .page-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; color: #f1f5f9; }
+    .page-subtitle { font-size: 11px; color: #64748b; margin-bottom: 16px; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .card { background: linear-gradient(135deg, #1a2a3a 0%, #0f1626 100%); border: 1px solid #1e293b; border-radius: 8px; padding: 14px; cursor: pointer; transition: all 0.3s; }
+    .card:hover { border-color: #00f0ff; box-shadow: 0 0 20px rgba(0, 240, 255, 0.1); transform: translateY(-2px); }
+    .card-icon { font-size: 24px; margin-bottom: 8px; }
+    .card-title { font-size: 12px; font-weight: 600; color: #f1f5f9; margin-bottom: 2px; }
+    .card-meta { font-size: 10px; color: #64748b; }
+    .list-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s; display: flex; justify-content: space-between; align-items: center; }
+    .list-card:hover { border-color: #00f0ff; background: rgba(0, 240, 255, 0.05); }
+    .list-card-info h3 { font-size: 12px; font-weight: 600; margin-bottom: 2px; color: #f1f5f9; }
+    .list-card-info p { font-size: 10px; color: #64748b; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; z-index: 50; opacity: 0; visibility: hidden; transition: all 0.3s; }
+    .modal-overlay.show { opacity: 1; visibility: visible; }
+    .modal { background: #0f1626; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; max-width: 450px; max-height: 80vh; overflow-y: auto; width: 90vw; }
+    .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: #64748b; font-size: 20px; cursor: pointer; }
+    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #00f0ff; }
+    .summary-text { font-size: 11px; line-height: 1.6; color: #94a3b8; margin-bottom: 16px; white-space: pre-wrap; }
+    .exam-btn { width: 100%; padding: 10px; background: linear-gradient(90deg, #00f0ff, #05ffb2); color: #0a0e1a; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 12px; }
+    .exam-btn:hover { box-shadow: 0 0 25px rgba(0, 240, 255, 0.5); }
+    .question { background: #060913; border: 1px solid #1e293b; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
+    .q-text { font-size: 12px; font-weight: 600; margin-bottom: 10px; }
+    .options { display: flex; flex-direction: column; gap: 6px; }
+    .option { background: transparent; border: 1.5px solid #1e293b; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; transition: all 0.3s; }
+    .option:hover { border-color: #00f0ff; }
+    .option.correct { border-color: #05ffb2; background: rgba(5, 255, 178, 0.1); color: #05ffb2; }
+    .option.incorrect { border-color: #ff2e93; background: rgba(255, 46, 147, 0.1); color: #ff2e93; }
+    .score-display { text-align: center; padding: 16px; background: rgba(0, 240, 255, 0.1); border-radius: 6px; margin-bottom: 16px; }
+    .score-num { font-size: 28px; font-weight: 700; color: #00f0ff; }
+    .score-label { font-size: 10px; color: #64748b; margin-top: 4px; }
+    .ceo-section { background: linear-gradient(135deg, rgba(255, 46, 147, 0.1), rgba(0, 240, 255, 0.05)); border: 1px solid #ff2e93; border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+    .ceo-title { font-size: 13px; font-weight: 700; color: #ff2e93; margin-bottom: 8px; }
+    .stat-box { background: #0f1626; border: 1px solid #1e293b; padding: 12px; border-radius: 6px; text-align: center; margin-bottom: 10px; }
+    .stat-num { font-size: 20px; font-weight: 700; color: #00f0ff; }
+    .stat-label { font-size: 10px; color: #64748b; margin-top: 2px; }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #0f1626; border-top: 1px solid #1e293b; display: flex; justify-content: space-around; align-items: center; z-index: 40; }
+    .nav-btn { background: none; border: none; color: #64748b; cursor: pointer; font-size: 20px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px; transition: all 0.3s; }
+    .nav-btn.active { color: #00f0ff; }
+    .nav-label { font-size: 9px; color: inherit; }
+    .logout-btn { background: transparent; border: 1px solid #1e293b; color: #64748b; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; }
+    .logout-btn:hover { border-color: #ff2e93; color: #ff2e93; }
+    .loading { text-align: center; padding: 20px; color: #64748b; }
+  </style>
+</head>
+<body>
+  <!-- AUTH VIEW -->
+  <div id="authView" class="view active">
+    <div class="auth-container">
+      <div class="auth-card">
+        <h1 class="auth-title">🇿🇲 AURA</h1>
+        <p class="auth-subtitle">Zambian University Study Platform</p>
+        <div class="error-msg" id="errorMsg"></div>
+        <div class="success-msg" id="successMsg"></div>
+
+        <div id="signupMode">
+          <form onsubmit="app.signup(event)">
+            <div class="form-group">
+              <label class="form-label">Name</label>
+              <input type="text" id="signupName" placeholder="Your name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" id="signupEmail" placeholder="email@example.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" id="signupPassword" placeholder="Password (min 6)" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">University</label>
+              <select id="signupUni" required>
+                <option value="">Select University</option>
+                <option value="UNZA">UNZA</option>
+                <option value="CBU">CBU</option>
+                <option value="Mulungushi">Mulungushi</option>
+                <option value="LAMU">LAMU</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-cyan">Create Account</button>
+          </form>
+          <div class="toggle-auth">
+            Have account? <button type="button" onclick="app.toggleAuth()">Sign In</button>
+          </div>
+        </div>
+
+        <div id="signinMode" style="display: none;">
+          <form onsubmit="app.signin(event)">
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" id="signinEmail" placeholder="email@example.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" id="signinPassword" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn btn-cyan">Sign In</button>
+          </form>
+          <div class="toggle-auth">
+            New user? <button type="button" onclick="app.toggleAuth()">Create Account</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP VIEW -->
+  <div id="appView" class="view">
+    <div id="modal" class="modal-overlay">
+      <div class="modal">
+        <button class="modal-close" onclick="app.closeModal()">✕</button>
+        <div id="modalContent"></div>
+      </div>
+    </div>
+
+    <div class="app-container">
+      <div class="header">
+        <div class="header-title">🇿🇲 AURA ACADEMY</div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <div class="countdown-box" id="countdownBox" onclick="app.showPaymentModal()">
+            <span id="countdownText">7d left</span>
+          </div>
+          <button class="logout-btn" onclick="app.logout()">Logout</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- HOME PAGE -->
+        <div id="homePage" class="page active">
+          <div class="page-title">Welcome!</div>
+          <p class="page-subtitle" id="welcomeMsg">Select your path</p>
+          <div class="card-grid" id="homeGrid"></div>
+        </div>
+
+        <!-- PROGRAMS PAGE -->
+        <div id="programsPage" class="page">
+          <div class="page-title" id="uniTitle">Programs</div>
+          <p class="page-subtitle">Select a school/faculty</p>
+          <div id="programsList"></div>
+        </div>
+
+        <!-- COURSES PAGE -->
+        <div id="coursesPage" class="page">
+          <div class="page-title" id="courseTitle">Courses</div>
+          <p class="page-subtitle">Select your year and course</p>
+          <div id="coursesList"></div>
+        </div>
+
+        <!-- PROFILE PAGE -->
+        <div id="profilePage" class="page">
+          <div class="page-title">Profile</div>
+          <div class="list-card">
+            <div class="list-card-info">
+              <h3 id="profileName">Name</h3>
+              <p id="profileUni">University</p>
+            </div>
+          </div>
+          <button class="btn btn-cyan" style="margin-top: 16px;" onclick="app.logout()">Logout</button>
+        </div>
+
+        <!-- CEO PAGE -->
+        <div id="ceoPage" class="page">
+          <div class="page-title">👑 CEO Dashboard</div>
+          <div class="ceo-section">
+            <div class="ceo-title">This Week</div>
+            <div class="stat-box">
+              <div class="stat-num" id="ceoRevenue">K0</div>
+              <div class="stat-label">Revenue</div>
+            </div>
+          </div>
+          <div class="ceo-section">
+            <div class="ceo-title">Total Students</div>
+            <div class="stat-box">
+              <div class="stat-num" id="ceoStudents">0</div>
+              <div class="stat-label">Registered</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM NAVIGATION -->
+      <div class="bottom-nav">
+        <button class="nav-btn active" onclick="app.goToPage('home')">
+          <span>🏠</span>
+          <span class="nav-label">Home</span>
+        </button>
+        <button class="nav-btn" onclick="app.goToPage('courses')">
+          <span>📚</span>
+          <span class="nav-label">Courses</span>
+        </button>
+        <button class="nav-btn" onclick="app.goToPage('profile')">
+          <span>👤</span>
+          <span class="nav-label">Profile</span>
+        </button>
+        <button class="nav-btn" id="ceoNavBtn" style="display: none;" onclick="app.goToPage('ceo')">
+          <span>👑</span>
+          <span class="nav-label">CEO</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // SUPABASE CONFIG
+    const SUPABASE_URL = 'https://fcmbhxwhfxklwxvggech.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_BueIEB3eheoTz85QFm0i5w_gpFvXqoo';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ZAMBIAN UNIVERSITIES DATABASE
+    const ZAMBIAN_UNIS = {
+      UNZA: {
+        name: 'University of Zambia',
+        icon: '🦅',
+        schools: {
+          'School of Engineering': { icon: '⚙️', programs: ['Civil Engineering', 'Electrical Engineering', 'Mechanical Engineering'] },
+          'School of Medicine': { icon: '🏥', programs: ['Medicine & Surgery', 'Pharmacy', 'Nursing'] },
+          'School of Law': { icon: '⚖️', programs: ['Bachelor of Laws'] },
+          'School of Business': { icon: '💼', programs: ['Accounting', 'Business Admin', 'Marketing'] }
+        }
+      },
+      CBU: {
+        name: 'Copperbelt University',
+        icon: '⛏️',
+        schools: {
+          'School of Engineering': { icon: '⚙️', programs: ['Electrical Engineering', 'Mechanical Engineering', 'Mechatronics'] },
+          'School of Medicine': { icon: '🏥', programs: ['Medicine & Surgery', 'Dental Surgery'] },
+          'School of ICT': { icon: '💻', programs: ['Computer Science', 'Software Engineering'] },
+          'School of Business': { icon: '💼', programs: ['Business Admin', 'Accounting'] }
+        }
+      },
+      Mulungushi: {
+        name: 'Mulungushi University',
+        icon: '📚',
+        schools: {
+          'School of Engineering': { icon: '⚙️', programs: ['Civil Engineering', 'Mechanical Engineering'] },
+          'School of Medicine': { icon: '🏥', programs: ['Pharmacy', 'Nursing'] },
+          'School of Business': { icon: '💼', programs: ['Accounting', 'Marketing'] }
+        }
+      },
+      LAMU: {
+        name: 'Lusaka Apex Medical University',
+        icon: '🏨',
+        schools: {
+          'Faculty of Medicine': { icon: '🏥', programs: ['Medicine & Surgery'] },
+          'Faculty of Health Sciences': { icon: '⚕️', programs: ['Pharmacy', 'Physiotherapy'] }
+        }
+      }
+    };
+
+    const COURSES = {
+      'Mathematics': { summary: '📚 MATHEMATICS\n\n⚡ Topics: Calculus, Linear Algebra, Differential Equations\n\n💡 Tip: Practice daily!' },
+      'Physics': { summary: '📚 PHYSICS\n\n⚡ Topics: Mechanics, Electricity, Waves\n\n💡 Tip: SI units always!' },
+      'Chemistry': { summary: '📚 CHEMISTRY\n\n⚡ Topics: Atomic Structure, Bonding, Reactions\n\n💡 Tip: Balance equations!' },
+      'Programming': { summary: '📚 PROGRAMMING\n\n⚡ Topics: Variables, Functions, OOP\n\n💡 Tip: Code daily!' }
+    };
+
+    class App {
+      constructor() {
+        this.user = null;
+        this.profile = null;
+        this.currentUni = null;
+        this.currentSchool = null;
+        this.checkAuth();
+        setInterval(() => this.updateCountdown(), 1000);
+      }
+
+      async checkAuth() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          this.user = session.user;
+          await this.loadProfile();
+          this.showApp();
+        }
+      }
+
+      async loadProfile() {
+        const { data, error } = await supabase
+          .from('aura_profiles')
+          .select('*')
+          .eq('user_id', this.user.id)
+          .single();
+
+        if (data) {
+          this.profile = data;
+        }
+      }
+
+      toggleAuth() {
+        document.getElementById('signupMode').style.display = document.getElementById('signupMode').style.display === 'none' ? 'block' : 'none';
+        document.getElementById('signinMode').style.display = document.getElementById('signinMode').style.display === 'none' ? 'block' : 'none';
+      }
+
+      async signup(e) {
+        e.preventDefault();
+        const err = document.getElementById('errorMsg');
+        const success = document.getElementById('successMsg');
+        err.classList.remove('show');
+        success.classList.remove('show');
+
+        const name = document.getElementById('signupName').value;
+        const email = document.getElementById('signupEmail').value;
+        const password = document.getElementById('signupPassword').value;
+        const uni = document.getElementById('signupUni').value;
+
+        if (!name || !email || !password || !uni) {
+          err.textContent = 'Fill all fields!';
+          err.classList.add('show');
+          return;
+        }
+
+        try {
+          const { data: { user }, error: authError } = await supabase.auth.signUp({
+            email,
+            password
+          });
+
+          if (authError) throw authError;
+
+          const subscriptionEnd = new Date();
+          subscriptionEnd.setDate(subscriptionEnd.getDate() + 7);
+
+          const { error: profileError } = await supabase
+            .from('aura_profiles')
+            .insert({
+              user_id: user.id,
+              name,
+              email,
+              university: uni,
+              subscription_end: subscriptionEnd.toISOString(),
+              is_ceo: email === 'Mwewadavid781@gmail.com'
+            });
+
+          if (profileError) throw profileError;
+
+          success.textContent = '✅ Account created! Check email to confirm.';
+          success.classList.add('show');
+
+          setTimeout(() => {
+            this.user = user;
+            this.loadProfile();
+            this.showApp();
+          }, 2000);
+        } catch (error) {
+          err.textContent = error.message;
+          err.classList.add('show');
+        }
+      }
+
+      async signin(e) {
+        e.preventDefault();
+        const err = document.getElementById('errorMsg');
+        err.classList.remove('show');
+
+        const email = document.getElementById('signinEmail').value;
+        const password = document.getElementById('signinPassword').value;
+
+        try {
+          const { data: { user }, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
+
+          if (error) throw error;
+
+          this.user = user;
+          await this.loadProfile();
+          this.showApp();
+        } catch (error) {
+          err.textContent = error.message;
+          err.classList.add('show');
+        }
+      }
+
+      showApp() {
+        document.getElementById('authView').classList.remove('active');
+        document.getElementById('appView').classList.add('active');
+        document.getElementById('profileName').textContent = this.profile?.name || 'Student';
+        document.getElementById('profileUni').textContent = this.profile?.university || 'University';
+        document.getElementById('welcomeMsg').textContent = `Hi ${this.profile?.name}! Welcome to AURA`;
+
+        if (this.profile?.is_ceo) {
+          document.getElementById('ceoNavBtn').style.display = 'flex';
+        }
+
+        this.renderHome();
+      }
+
+      renderHome() {
+        let html = '';
+        for (const [code, uni] of Object.entries(ZAMBIAN_UNIS)) {
+          html += `
+            <div class="card" onclick="app.selectUni('${code}')">
+              <div class="card-icon">${uni.icon}</div>
+              <div class="card-title">${uni.name}</div>
+              <div class="card-meta">Tap to explore</div>
+            </div>
+          `;
+        }
+        document.getElementById('homeGrid').innerHTML = html;
+      }
+
+      selectUni(code) {
+        this.currentUni = code;
+        this.showPrograms();
+      }
+
+      showPrograms() {
+        const uni = ZAMBIAN_UNIS[this.currentUni];
+        document.getElementById('uniTitle').textContent = uni.name;
+        let html = '';
+        for (const [school, data] of Object.entries(uni.schools)) {
+          html += `
+            <div class="list-card" onclick="app.selectSchool('${school}')">
+              <div style="margin-right: 8px;">${data.icon}</div>
+              <div class="list-card-info">
+                <h3>${school}</h3>
+                <p>${data.programs.length} programs</p>
+              </div>
+            </div>
+          `;
+        }
+        document.getElementById('programsList').innerHTML = html;
+        this.goToPage('programs');
+      }
+
+      selectSchool(school) {
+        this.currentSchool = school;
+        const uni = ZAMBIAN_UNIS[this.currentUni];
+        const programs = uni.schools[school].programs;
+        document.getElementById('courseTitle').textContent = school;
+        let html = '';
+        programs.forEach(prog => {
+          html += `
+            <div class="list-card" onclick="app.selectCourses('${prog}')">
+              <div style="margin-right: 8px;">📖</div>
+              <div class="list-card-info">
+                <h3>${prog}</h3>
+                <p>4 years available</p>
+              </div>
+            </div>
+          `;
+        });
+        document.getElementById('coursesList').innerHTML = html;
+        this.goToPage('courses');
+      }
+
+      selectCourses(prog) {
+        let html = '<div class="page-subtitle">Select a course</div>';
+        Object.keys(COURSES).forEach(course => {
+          html += `
+            <div class="list-card" onclick="app.showCourse('${course}')">
+              <div style="margin-right: 8px;">📚</div>
+              <div class="list-card-info">
+                <h3>${course}</h3>
+                <p>${prog}</p>
+              </div>
+            </div>
+          `;
+        });
+        document.getElementById('coursesList').innerHTML = html;
+      }
+
+      showCourse(course) {
+        const data = COURSES[course] || { summary: 'Course details coming soon!' };
+        const html = `
+          <h2 class="modal-title">${course}</h2>
+          <div class="summary-text">${data.summary}</div>
+          <button class="exam-btn" onclick="app.startExam('${course}')">📝 Start Exam (3 Q)</button>
+        `;
+        document.getElementById('modalContent').innerHTML = html;
+        document.getElementById('modal').classList.add('show');
+      }
+
+      startExam(course) {
+        const questions = [
+          { q: 'Question 1: Select the correct answer', opts: ['Option A', 'Option B', 'Option C', 'Option D'], correct: 0 },
+          { q: 'Question 2: What is the correct choice?', opts: ['Choice 1', 'Choice 2', 'Choice 3', 'Choice 4'], correct: 1 },
+          { q: 'Question 3: Find the solution', opts: ['Solution A', 'Solution B', 'Solution C', 'Solution D'], correct: 2 }
+        ];
+
+        let html = `<h2 class="modal-title">${course} Exam</h2>`;
+        questions.forEach((q, i) => {
+          html += `
+            <div class="question">
+              <div class="q-text">Q${i+1}: ${q.q}</div>
+              <div class="options">
+                ${q.opts.map((opt, j) => `
+                  <button class="option" onclick="app.answerQ(this, ${j}, ${q.correct})">
+                    ${String.fromCharCode(65+j)}. ${opt}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        });
+        html += `<button class="exam-btn" onclick="app.finishExam()">See Score</button>`;
+        document.getElementById('modalContent').innerHTML = html;
+      }
+
+      answerQ(btn, selected, correct) {
+        const parent = btn.parentElement;
+        parent.querySelectorAll('.option').forEach(b => { b.disabled = true; b.classList.remove('correct', 'incorrect'); });
+        if (selected === correct) {
+          btn.classList.add('correct');
+          window.correctAnswers = (window.correctAnswers || 0) + 1;
+        } else {
+          btn.classList.add('incorrect');
+          parent.querySelectorAll('.option')[correct].classList.add('correct');
+        }
+        window.totalQuestions = (window.totalQuestions || 0) + 1;
+      }
+
+      finishExam() {
+        const score = Math.round((window.correctAnswers / window.totalQuestions) * 100);
+        const html = `
+          <h2 class="modal-title">✅ Complete!</h2>
+          <div class="score-display">
+            <div class="score-num">${score}%</div>
+            <div class="score-label">${window.correctAnswers}/${window.totalQuestions} correct</div>
+          </div>
+          <button class="exam-btn" onclick="app.closeModal()">Back</button>
+        `;
+        document.getElementById('modalContent').innerHTML = html;
+        window.correctAnswers = 0;
+        window.totalQuestions = 0;
+      }
+
+      closeModal() {
+        document.getElementById('modal').classList.remove('show');
+      }
+
+      goToPage(page) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(page + 'Page').classList.add('active');
+        const btn = document.querySelector(`[onclick="app.goToPage('${page}')"]`);
+        if (btn) btn.classList.add('active');
+      }
+
+      updateCountdown() {
+        if (!this.profile) return;
+        const diff = new Date(this.profile.subscription_end) - Date.now();
+        const days = Math.floor(diff / (1000*60*60*24));
+        const hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+        document.getElementById('countdownText').textContent = `${Math.max(0, days)}d ${Math.max(0, hours)}h`;
+
+        if (days < 0) {
+          document.getElementById('countdownBox').style.background = 'rgba(255, 46, 147, 0.3)';
+          document.getElementById('countdownText').textContent = 'LOCKED';
+        }
+      }
+
+      showPaymentModal() {
+        const html = `
+          <h2 class="modal-title">💳 Renew Access</h2>
+          <p style="font-size: 11px; color: #64748b; margin-bottom: 12px;">K10 per week</p>
+          <div style="background: #060913; padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+            <h4 style="color: #00f0ff; margin-bottom: 6px; font-size: 11px;">📱 MTN Mobile Money:</h4>
+            <p style="color: #64748b; font-size: 10px;">Send: <strong style="color: #05ffb2;">K10 to 0964969767</strong></p>
+            <p style="color: #64748b; font-size: 10px; margin-top: 4px;">Then WhatsApp: <strong style="color: #05ffb2;">+260750109917</strong></p>
+          </div>
+          <button class="exam-btn" onclick="window.open('https://wa.me/260750109917?text=Hi%20I%20paid%20K10%20for%20Aura%20Academy', '_blank')">📱 Unlock Now</button>
+        `;
+        document.getElementById('modalContent').innerHTML = html;
+        document.getElementById('modal').classList.add('show');
+      }
+
+      async logout() {
+        await supabase.auth.signOut();
+        document.getElementById('appView').classList.remove('active');
+        document.getElementById('authView').classList.add('active');
+        window.location.reload();
+      }
+    }
+
+    const app = new App();
+  </script>
+</body>
+</html>

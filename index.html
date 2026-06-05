@@ -16,17 +16,17 @@
     .form-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; display: block; }
     input, select { width: 100%; padding: 10px; border: 1px solid #1e293b; border-radius: 6px; background: #060913; color: #f1f5f9; font-size: 13px; font-family: inherit; }
     input:focus, select:focus { outline: none; border-color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
-    .btn { width: 100%; padding: 11px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 700; transition: all 0.3s; font-family: inherit; }
-    .btn-cyan { background: #00f0ff; color: #0a0e1a; }
-    .btn-cyan:hover { box-shadow: 0 0 30px rgba(0, 240, 255, 0.5); }
-    .error-msg { background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; color: #ff2e93; padding: 8px; border-radius: 4px; font-size: 11px; margin-bottom: 12px; display: none; }
-    .error-msg.show { display: block; }
+    .btn { width: 100%; padding: 11px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 700; font-family: inherit; background: #00f0ff; color: #0a0e1a; }
+    .btn:hover { box-shadow: 0 0 30px rgba(0, 240, 255, 0.5); }
     .app-container { display: flex; flex-direction: column; height: 100vh; }
     .header { padding: 14px 20px; border-bottom: 1px solid #1e293b; background: #0f1626; display: flex; justify-content: space-between; align-items: center; }
     .header-title { font-size: 16px; font-weight: 700; color: #00f0ff; }
-    .countdown-box { background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; padding: 6px 10px; border-radius: 4px; font-size: 11px; color: #ff2e93; font-weight: 700; cursor: pointer; }
+    .countdown { background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; padding: 6px 10px; border-radius: 4px; font-size: 11px; color: #ff2e93; font-weight: 700; }
+    .logout-btn { background: transparent; border: 1px solid #1e293b; color: #64748b; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; }
+    .logout-btn:hover { border-color: #ff2e93; color: #ff2e93; }
     .content { flex: 1; overflow-y: auto; padding: 16px 20px 80px; }
     .page { display: none; } .page.active { display: block; }
+    .back-btn { background: none; border: none; color: #00f0ff; cursor: pointer; font-weight: 600; font-size: 12px; margin-bottom: 12px; }
     .page-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
     .page-subtitle { font-size: 11px; color: #64748b; margin-bottom: 16px; }
     .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
@@ -35,47 +35,41 @@
     .card-icon { font-size: 24px; margin-bottom: 8px; }
     .card-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
     .card-meta { font-size: 10px; color: #64748b; }
-    .list-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s; }
-    .list-card:hover { border-color: #00f0ff; background: rgba(0, 240, 255, 0.05); }
-    .list-card h3 { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
-    .list-card p { font-size: 10px; color: #64748b; }
-    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); display: flex; align-items: center; justify-content: center; z-index: 50; opacity: 0; visibility: hidden; transition: all 0.3s; }
-    .modal-overlay.show { opacity: 1; visibility: visible; }
-    .modal { background: #0f1626; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; max-width: 450px; max-height: 80vh; overflow-y: auto; width: 90vw; }
+    .list-item { background: #0f1626; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s; }
+    .list-item:hover { border-color: #00f0ff; background: rgba(0, 240, 255, 0.05); }
+    .list-item h3 { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+    .list-item p { font-size: 10px; color: #64748b; }
+    .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); display: none; align-items: center; justify-content: center; z-index: 50; }
+    .modal.show { display: flex; }
+    .modal-box { background: #0f1626; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; max-width: 450px; max-height: 85vh; overflow-y: auto; width: 90vw; }
     .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: #64748b; font-size: 20px; cursor: pointer; }
     .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #00f0ff; }
-    .summary-text { font-size: 11px; line-height: 1.6; color: #94a3b8; margin-bottom: 16px; white-space: pre-wrap; }
+    .summary { font-size: 11px; line-height: 1.6; color: #94a3b8; margin-bottom: 16px; white-space: pre-wrap; }
     .exam-btn { width: 100%; padding: 10px; background: linear-gradient(90deg, #00f0ff, #05ffb2); color: #0a0e1a; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 12px; font-family: inherit; }
-    .question { background: #060913; border: 1px solid #1e293b; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
-    .q-text { font-size: 12px; font-weight: 600; margin-bottom: 10px; }
+    .question-box { background: #060913; border: 1px solid #1e293b; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
+    .question-text { font-size: 12px; font-weight: 600; margin-bottom: 10px; }
     .options { display: flex; flex-direction: column; gap: 6px; }
-    .option { background: transparent; border: 1.5px solid #1e293b; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; transition: all 0.3s; font-family: inherit; }
-    .option:hover { border-color: #00f0ff; }
-    .option.correct { border-color: #05ffb2; background: rgba(5, 255, 178, 0.1); color: #05ffb2; }
-    .option.incorrect { border-color: #ff2e93; background: rgba(255, 46, 147, 0.1); color: #ff2e93; }
-    .score-display { text-align: center; padding: 16px; background: rgba(0, 240, 255, 0.1); border-radius: 6px; margin-bottom: 16px; }
-    .score-num { font-size: 28px; font-weight: 700; color: #00f0ff; }
+    .option-btn { background: transparent; border: 1.5px solid #1e293b; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; text-align: left; font-family: inherit; transition: all 0.3s; }
+    .option-btn:hover { border-color: #00f0ff; }
+    .option-btn.correct { border-color: #05ffb2; background: rgba(5, 255, 178, 0.1); color: #05ffb2; }
+    .option-btn.incorrect { border-color: #ff2e93; background: rgba(255, 46, 147, 0.1); color: #ff2e93; }
+    .option-btn:disabled { cursor: not-allowed; }
+    .score-box { text-align: center; padding: 16px; background: rgba(0, 240, 255, 0.1); border-radius: 6px; margin-bottom: 16px; }
+    .score-num { font-size: 32px; font-weight: 700; color: #00f0ff; }
     .score-label { font-size: 10px; color: #64748b; margin-top: 4px; }
     .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #0f1626; border-top: 1px solid #1e293b; display: flex; justify-content: space-around; z-index: 40; }
     .nav-btn { background: none; border: none; color: #64748b; cursor: pointer; font-size: 20px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px; transition: all 0.3s; }
     .nav-btn.active { color: #00f0ff; }
     .nav-label { font-size: 9px; color: inherit; }
-    .logout-btn { background: transparent; border: 1px solid #1e293b; color: #64748b; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; }
-    .logout-btn:hover { border-color: #ff2e93; color: #ff2e93; }
-    .payment-section { background: #060913; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
-    .payment-section h4 { color: #00f0ff; margin-bottom: 6px; font-size: 11px; }
-    .payment-section p { font-size: 10px; color: #64748b; margin: 2px 0; }
   </style>
 </head>
 <body>
-  <!-- AUTH VIEW -->
+  <!-- AUTH -->
   <div id="authView" class="view active">
     <div class="auth-container">
       <div class="auth-card">
         <h1 class="auth-title">🇿🇲 AURA</h1>
-        <p class="auth-subtitle">Zambian University Study</p>
-        <div class="error-msg" id="errorMsg"></div>
-
+        <p class="auth-subtitle">Zambian Study Platform</p>
         <form onsubmit="app.login(event)">
           <div class="form-group">
             <label class="form-label">Name</label>
@@ -88,23 +82,23 @@
           <div class="form-group">
             <label class="form-label">University</label>
             <select id="uniInput" required>
-              <option value="">Select</option>
+              <option value="">Select University</option>
               <option value="UNZA">UNZA</option>
               <option value="CBU">CBU</option>
               <option value="Mulungushi">Mulungushi</option>
               <option value="LAMU">LAMU</option>
             </select>
           </div>
-          <button type="submit" class="btn btn-cyan">Enter AURA</button>
+          <button type="submit" class="btn">Enter AURA</button>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- APP VIEW -->
+  <!-- APP -->
   <div id="appView" class="view">
-    <div id="modal" class="modal-overlay">
-      <div class="modal">
+    <div id="modal" class="modal">
+      <div class="modal-box">
         <button class="modal-close" onclick="app.closeModal()">✕</button>
         <div id="modalContent"></div>
       </div>
@@ -114,37 +108,59 @@
       <div class="header">
         <div class="header-title">🇿🇲 AURA</div>
         <div style="display: flex; gap: 10px; align-items: center;">
-          <div class="countdown-box" id="countdown">7d left</div>
+          <div class="countdown" id="countdown">7d 0h</div>
           <button class="logout-btn" onclick="app.logout()">Logout</button>
         </div>
       </div>
 
       <div class="content">
+        <!-- HOME -->
         <div id="homePage" class="page active">
           <div class="page-title">Welcome!</div>
           <p class="page-subtitle" id="greeting">Hi there!</p>
           <div id="uniGrid"></div>
         </div>
 
+        <!-- SCHOOLS -->
         <div id="schoolPage" class="page">
+          <button class="back-btn" onclick="app.backHome()">← Back</button>
           <div class="page-title" id="schoolTitle">Schools</div>
-          <p class="page-subtitle">Select a school</p>
+          <p class="page-subtitle">Select a school/faculty</p>
           <div id="schoolList"></div>
         </div>
 
+        <!-- PROGRAMS -->
+        <div id="programPage" class="page">
+          <button class="back-btn" onclick="app.backSchools()">← Back</button>
+          <div class="page-title" id="programTitle">Programs</div>
+          <p class="page-subtitle">Select a program</p>
+          <div id="programList"></div>
+        </div>
+
+        <!-- YEARS -->
+        <div id="yearPage" class="page">
+          <button class="back-btn" onclick="app.backPrograms()">← Back</button>
+          <div class="page-title">Academic Year</div>
+          <p class="page-subtitle">Select a year</p>
+          <div id="yearList"></div>
+        </div>
+
+        <!-- COURSES -->
         <div id="coursePage" class="page">
+          <button class="back-btn" onclick="app.backYears()">← Back</button>
           <div class="page-title">Courses</div>
           <p class="page-subtitle">Select a course</p>
           <div id="courseList"></div>
         </div>
 
+        <!-- PROFILE -->
         <div id="profilePage" class="page">
           <div class="page-title">Profile</div>
-          <div class="list-card">
+          <div class="list-item">
             <h3 id="profileName">Name</h3>
             <p id="profileUni">University</p>
           </div>
-          <button class="btn btn-cyan" style="margin-top: 16px;" onclick="app.logout()">Logout</button>
+          <button class="btn" style="margin-top: 16px;" onclick="app.logout()">Logout</button>
         </div>
       </div>
 
@@ -157,47 +173,53 @@
   </div>
 
   <script>
-    const UNIS = {
+    const DATA = {
       UNZA: {
-        name: 'UNZA', icon: '🦅',
+        name: 'UNZA',
+        icon: '🦅',
         schools: {
-          'Engineering': ['Civil', 'Electrical', 'Mechanical'],
-          'Medicine': ['Surgery', 'Pharmacy', 'Nursing'],
-          'Law': ['LLB'],
-          'Business': ['Accounting', 'Marketing']
+          'School of Engineering': ['Civil Engineering', 'Electrical Engineering', 'Mechanical Engineering'],
+          'School of Medicine': ['Medicine & Surgery', 'Pharmacy', 'Nursing'],
+          'School of Law': ['Bachelor of Laws'],
+          'School of Business': ['Accounting', 'Business Admin', 'Marketing']
         }
       },
       CBU: {
-        name: 'CBU', icon: '⛏️',
+        name: 'CBU',
+        icon: '⛏️',
         schools: {
-          'Engineering': ['Electrical', 'Mechanical', 'Mechatronics'],
-          'Medicine': ['Surgery'],
-          'ICT': ['Computer Science', 'Software'],
-          'Business': ['Accounting']
+          'School of Engineering': ['Electrical Engineering', 'Mechanical Engineering', 'Mechatronics'],
+          'School of Medicine': ['Medicine & Surgery', 'Dental Surgery'],
+          'School of ICT': ['Computer Science', 'Software Engineering'],
+          'School of Business': ['Accounting', 'Business Admin']
         }
       },
       Mulungushi: {
-        name: 'Mulungushi', icon: '📚',
+        name: 'Mulungushi',
+        icon: '📚',
         schools: {
-          'Engineering': ['Civil', 'Mechanical'],
-          'Medicine': ['Pharmacy'],
-          'Business': ['Accounting']
+          'School of Engineering': ['Civil Engineering', 'Mechanical Engineering'],
+          'School of Medicine': ['Pharmacy', 'Nursing'],
+          'School of Business': ['Accounting', 'Marketing']
         }
       },
       LAMU: {
-        name: 'LAMU', icon: '🏨',
+        name: 'LAMU',
+        icon: '🏨',
         schools: {
-          'Medicine': ['Surgery'],
-          'Health': ['Pharmacy', 'Physio']
+          'Faculty of Medicine': ['Medicine & Surgery'],
+          'Faculty of Health': ['Pharmacy', 'Physiotherapy']
         }
       }
     };
 
+    const YEARS = ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'];
+
     const COURSES = {
-      'Math': '📚 MATHEMATICS\n\n⚡ Calculus, Algebra, Equations\n\n💡 Practice daily!',
-      'Physics': '📚 PHYSICS\n\n⚡ Mechanics, Electricity, Waves\n\n💡 SI units!',
-      'Chemistry': '📚 CHEMISTRY\n\n⚡ Atoms, Bonds, Reactions\n\n💡 Balance equations!',
-      'Programming': '📚 PROGRAMMING\n\n⚡ Code, Functions, OOP\n\n💡 Code every day!'
+      'Mathematics': '📚 MATHEMATICS\n⚡ Calculus, Algebra, Equations\n💡 Practice regularly!',
+      'Physics': '📚 PHYSICS\n⚡ Mechanics, Forces, Waves\n💡 SI units always!',
+      'Chemistry': '📚 CHEMISTRY\n⚡ Atoms, Bonds, Reactions\n💡 Balance equations!',
+      'Programming': '📚 PROGRAMMING\n⚡ Variables, Functions, OOP\n💡 Code every day!'
     };
 
     class AuraApp {
@@ -215,13 +237,7 @@
         const email = document.getElementById('emailInput').value;
         const uni = document.getElementById('uniInput').value;
 
-        if (!name || !email || !uni) {
-          document.getElementById('errorMsg').textContent = 'Fill all!';
-          document.getElementById('errorMsg').classList.add('show');
-          return;
-        }
-
-        this.user = { name, email, uni, isCEO: email === 'Mwewadavid781@gmail.com' };
+        this.user = { name, email, uni };
         localStorage.setItem('auraUser', JSON.stringify(this.user));
         this.showApp();
       }
@@ -233,85 +249,108 @@
         document.getElementById('profileName').textContent = this.user.name;
         document.getElementById('profileUni').textContent = `${this.user.uni} University`;
         this.renderUnis();
-        this.tick();
+        this.startCountdown();
       }
 
       renderUnis() {
         let html = '';
-        for (const [code, uni] of Object.entries(UNIS)) {
-          html += `<div class="card" onclick="app.pickUni('${code}')"><div class="card-icon">${uni.icon}</div><div class="card-title">${uni.name}</div></div>`;
+        for (const [code, data] of Object.entries(DATA)) {
+          html += `<div class="card" onclick="app.selectUni('${code}')"><div class="card-icon">${data.icon}</div><div class="card-title">${data.name}</div></div>`;
         }
         document.getElementById('uniGrid').innerHTML = html;
       }
 
-      pickUni(code) {
-        const schools = Object.keys(UNIS[code].schools);
+      selectUni(code) {
+        const schools = Object.keys(DATA[code].schools);
         let html = '';
         schools.forEach(s => {
-          html += `<div class="list-card" onclick="app.pickSchool('${code}','${s}')"><h3>${s}</h3></div>`;
+          html += `<div class="list-item" onclick="app.selectSchool('${code}','${s}')"><h3>${s}</h3></div>`;
         });
         document.getElementById('schoolList').innerHTML = html;
-        document.getElementById('schoolTitle').textContent = UNIS[code].name;
+        document.getElementById('schoolTitle').textContent = DATA[code].name;
         this.goPage('school');
+        this.currentUni = code;
       }
 
-      pickSchool(uni, school) {
-        const courses = Object.keys(COURSES);
+      selectSchool(uni, school) {
+        const programs = DATA[uni].schools[school];
         let html = '';
-        courses.forEach(c => {
-          html += `<div class="list-card" onclick="app.showCourse('${c}')"><h3>${c}</h3><p>${school}</p></div>`;
+        programs.forEach(p => {
+          html += `<div class="list-item" onclick="app.selectProgram('${uni}','${school}','${p}')"><h3>${p}</h3></div>`;
+        });
+        document.getElementById('programList').innerHTML = html;
+        document.getElementById('programTitle').textContent = school;
+        this.goPage('program');
+        this.currentSchool = school;
+      }
+
+      selectProgram(uni, school, prog) {
+        let html = '';
+        YEARS.forEach(y => {
+          html += `<div class="list-item" onclick="app.selectYear('${uni}','${school}','${prog}','${y}')"><h3>${y}</h3></div>`;
+        });
+        document.getElementById('yearList').innerHTML = html;
+        this.goPage('year');
+        this.currentProgram = prog;
+      }
+
+      selectYear(uni, school, prog, year) {
+        let html = '';
+        Object.keys(COURSES).forEach(c => {
+          html += `<div class="list-item" onclick="app.showCourse('${c}')"><h3>${c}</h3><p>${year}</p></div>`;
         });
         document.getElementById('courseList').innerHTML = html;
         this.goPage('course');
+        this.currentYear = year;
       }
 
       showCourse(course) {
         const html = `
           <h2 class="modal-title">${course}</h2>
-          <div class="summary-text">${COURSES[course]}</div>
-          <button class="exam-btn" onclick="app.startExam('${course}')">📝 Exam (3 Q)</button>
+          <div class="summary">${COURSES[course]}</div>
+          <button class="exam-btn" onclick="app.startExam('${course}')">📝 Start Exam (3 Q)</button>
         `;
         document.getElementById('modalContent').innerHTML = html;
         document.getElementById('modal').classList.add('show');
       }
 
       startExam(course) {
-        const qs = [
-          { q: 'Q1: Select correct', opts: ['A', 'B', 'C', 'D'], c: 0 },
-          { q: 'Q2: Pick answer', opts: ['1', '2', '3', '4'], c: 1 },
-          { q: 'Q3: Find it', opts: ['X', 'Y', 'Z', 'W'], c: 2 }
+        const questions = [
+          { text: 'Q1: Select correct answer', opts: ['A: Option A', 'B: Option B', 'C: Option C', 'D: Option D'], correct: 0 },
+          { text: 'Q2: Pick the right one', opts: ['A: First', 'B: Second', 'C: Third', 'D: Fourth'], correct: 1 },
+          { text: 'Q3: Find the solution', opts: ['A: Answer 1', 'B: Answer 2', 'C: Answer 3', 'D: Answer 4'], correct: 2 }
         ];
 
         let html = `<h2 class="modal-title">${course} Exam</h2>`;
-        qs.forEach((q, i) => {
-          html += `<div class="question"><div class="q-text">${q.q}</div><div class="options">`;
+        questions.forEach((q, i) => {
+          html += `<div class="question-box"><div class="question-text">${q.text}</div><div class="options">`;
           q.opts.forEach((o, j) => {
-            html += `<button class="option" onclick="app.ans(this,${j},${q.c})">${o}</button>`;
+            html += `<button class="option-btn" onclick="app.answer(this, ${j}, ${q.correct})">${o}</button>`;
           });
           html += `</div></div>`;
         });
-        html += `<button class="exam-btn" onclick="app.endExam()">Score</button>`;
+        html += `<button class="exam-btn" onclick="app.finishExam()">See Score</button>`;
         document.getElementById('modalContent').innerHTML = html;
       }
 
-      ans(btn, sel, cor) {
+      answer(btn, sel, cor) {
         const par = btn.parentElement;
-        par.querySelectorAll('.option').forEach(b => b.disabled = true);
+        par.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
         if (sel === cor) {
           btn.classList.add('correct');
           window.score = (window.score || 0) + 1;
         } else {
           btn.classList.add('incorrect');
-          par.querySelectorAll('.option')[cor].classList.add('correct');
+          par.querySelectorAll('.option-btn')[cor].classList.add('correct');
         }
         window.total = (window.total || 0) + 1;
       }
 
-      endExam() {
+      finishExam() {
         const pct = Math.round((window.score / window.total) * 100);
         const html = `
-          <h2 class="modal-title">✅ Done!</h2>
-          <div class="score-display"><div class="score-num">${pct}%</div><div class="score-label">${window.score}/${window.total}</div></div>
+          <h2 class="modal-title">✅ Exam Complete!</h2>
+          <div class="score-box"><div class="score-num">${pct}%</div><div class="score-label">${window.score}/${window.total} correct</div></div>
           <button class="exam-btn" onclick="app.closeModal()">Back</button>
         `;
         document.getElementById('modalContent').innerHTML = html;
@@ -327,10 +366,14 @@
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(page + 'Page').classList.add('active');
-        event.target.closest('.nav-btn')?.classList.add('active');
       }
 
-      tick() {
+      backHome() { this.goPage('home'); }
+      backSchools() { this.goPage('school'); }
+      backPrograms() { this.goPage('program'); }
+      backYears() { this.goPage('year'); }
+
+      startCountdown() {
         setInterval(() => {
           const d = new Date();
           d.setDate(d.getDate() + 7);

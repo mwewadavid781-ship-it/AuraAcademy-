@@ -3,50 +3,74 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AURA ACADEMY</title>
+  <title>AURA ACADEMY - Zambian AI Study Platform</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0e1a; color: #f1f5f9; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0e1a; color: #f1f5f9; overflow-x: hidden; }
     .view { display: none; } .view.active { display: block; }
+    
+    /* AUTH SECTION */
     .auth-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #0f1626 0%, #0a0e1a 100%); }
-    .auth-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 12px; padding: 28px; max-width: 380px; width: 100%; }
-    .auth-title { font-size: 26px; font-weight: 700; margin-bottom: 6px; color: #00f0ff; }
-    .auth-subtitle { font-size: 11px; color: #64748b; margin-bottom: 20px; }
-    .form-group { margin-bottom: 12px; }
+    .auth-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 12px; padding: 28px; max-width: 400px; width: 100%; }
+    .auth-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; color: #00f0ff; }
+    .auth-subtitle { font-size: 11px; color: #64748b; margin-bottom: 24px; }
+    .form-group { margin-bottom: 14px; }
     .form-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; display: block; }
-    input, select { width: 100%; padding: 10px; border: 1px solid #1e293b; border-radius: 6px; background: #060913; color: #f1f5f9; font-size: 13px; font-family: inherit; }
-    input:focus, select:focus { outline: none; border-color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
-    .btn { width: 100%; padding: 11px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 700; font-family: inherit; background: #00f0ff; color: #0a0e1a; }
+    input, select, textarea { width: 100%; padding: 10px; border: 1px solid #1e293b; border-radius: 6px; background: #060913; color: #f1f5f9; font-size: 13px; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 700; font-family: inherit; transition: all 0.3s; background: #00f0ff; color: #0a0e1a; }
     .btn:hover { box-shadow: 0 0 30px rgba(0, 240, 255, 0.5); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error-msg { background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; color: #ff2e93; padding: 8px; border-radius: 4px; font-size: 11px; margin-bottom: 12px; display: none; }
+    .error-msg.show { display: block; }
+    .success-msg { background: rgba(5, 255, 178, 0.1); border: 1px solid #05ffb2; color: #05ffb2; padding: 8px; border-radius: 4px; font-size: 11px; margin-bottom: 12px; display: none; }
+    .success-msg.show { display: block; }
+    
+    /* APP SECTION */
     .app-container { display: flex; flex-direction: column; height: 100vh; }
-    .header { padding: 14px 20px; border-bottom: 1px solid #1e293b; background: #0f1626; display: flex; justify-content: space-between; align-items: center; }
+    .header { padding: 14px 20px; border-bottom: 1px solid #1e293b; background: #0f1626; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
     .header-title { font-size: 16px; font-weight: 700; color: #00f0ff; }
-    .countdown { background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; padding: 6px 10px; border-radius: 4px; font-size: 11px; color: #ff2e93; font-weight: 700; }
+    .header-controls { display: flex; gap: 10px; align-items: center; }
+    .countdown { background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; padding: 6px 10px; border-radius: 4px; font-size: 11px; color: #ff2e93; font-weight: 700; cursor: pointer; }
     .logout-btn { background: transparent; border: 1px solid #1e293b; color: #64748b; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; }
     .logout-btn:hover { border-color: #ff2e93; color: #ff2e93; }
+    
     .content { flex: 1; overflow-y: auto; padding: 16px 20px 80px; }
     .page { display: none; } .page.active { display: block; }
     .back-btn { background: none; border: none; color: #00f0ff; cursor: pointer; font-weight: 600; font-size: 12px; margin-bottom: 12px; }
     .page-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
     .page-subtitle { font-size: 11px; color: #64748b; margin-bottom: 16px; }
-    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
     .card { background: linear-gradient(135deg, #1a2a3a 0%, #0f1626 100%); border: 1px solid #1e293b; border-radius: 8px; padding: 14px; cursor: pointer; transition: all 0.3s; }
     .card:hover { border-color: #00f0ff; box-shadow: 0 0 20px rgba(0, 240, 255, 0.1); }
-    .card-icon { font-size: 24px; margin-bottom: 8px; }
+    .card-icon { font-size: 28px; margin-bottom: 8px; }
     .card-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
     .card-meta { font-size: 10px; color: #64748b; }
+    
     .list-item { background: #0f1626; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s; }
     .list-item:hover { border-color: #00f0ff; background: rgba(0, 240, 255, 0.05); }
     .list-item h3 { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
     .list-item p { font-size: 10px; color: #64748b; }
-    .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); display: none; align-items: center; justify-content: center; z-index: 50; }
+    
+    .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); display: none; align-items: center; justify-content: center; z-index: 200; overflow-y: auto; padding: 20px; }
     .modal.show { display: flex; }
-    .modal-box { background: #0f1626; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; max-width: 450px; max-height: 85vh; overflow-y: auto; width: 90vw; }
+    .modal-box { background: #0f1626; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
     .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: #64748b; font-size: 20px; cursor: pointer; }
     .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #00f0ff; }
+    
     .summary { font-size: 11px; line-height: 1.6; color: #94a3b8; margin-bottom: 16px; white-space: pre-wrap; }
+    .upload-area { background: #060913; border: 2px dashed #1e293b; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 16px; }
+    .upload-area:hover { border-color: #00f0ff; background: rgba(0, 240, 255, 0.05); }
+    .upload-icon { font-size: 32px; margin-bottom: 8px; }
+    .upload-text { font-size: 11px; color: #94a3b8; }
+    input[type="file"] { display: none; }
+    
     .exam-btn { width: 100%; padding: 10px; background: linear-gradient(90deg, #00f0ff, #05ffb2); color: #0a0e1a; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 12px; font-family: inherit; }
-    .question-box { background: #060913; border: 1px solid #1e293b; padding: 12px; border-radius: 6px; margin-bottom: 12px; }
+    
+    .question-box { background: #060913; border: 1px solid #1e293b; padding: 14px; border-radius: 6px; margin-bottom: 14px; }
+    .question-num { font-size: 10px; color: #00f0ff; font-weight: 700; margin-bottom: 4px; }
     .question-text { font-size: 12px; font-weight: 600; margin-bottom: 10px; }
     .options { display: flex; flex-direction: column; gap: 6px; }
     .option-btn { background: transparent; border: 1.5px solid #1e293b; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; text-align: left; font-family: inherit; transition: all 0.3s; }
@@ -54,48 +78,83 @@
     .option-btn.correct { border-color: #05ffb2; background: rgba(5, 255, 178, 0.1); color: #05ffb2; }
     .option-btn.incorrect { border-color: #ff2e93; background: rgba(255, 46, 147, 0.1); color: #ff2e93; }
     .option-btn:disabled { cursor: not-allowed; }
+    
+    .explanation { background: rgba(0, 240, 255, 0.05); border-left: 2px solid #00f0ff; padding: 8px; border-radius: 4px; margin-top: 8px; font-size: 10px; color: #94a3b8; }
+    
     .score-box { text-align: center; padding: 16px; background: rgba(0, 240, 255, 0.1); border-radius: 6px; margin-bottom: 16px; }
-    .score-num { font-size: 32px; font-weight: 700; color: #00f0ff; }
+    .score-num { font-size: 36px; font-weight: 700; color: #00f0ff; }
     .score-label { font-size: 10px; color: #64748b; margin-top: 4px; }
-    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #0f1626; border-top: 1px solid #1e293b; display: flex; justify-content: space-around; z-index: 40; }
+    
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #0f1626; border-top: 1px solid #1e293b; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
     .nav-btn { background: none; border: none; color: #64748b; cursor: pointer; font-size: 20px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px; transition: all 0.3s; }
     .nav-btn.active { color: #00f0ff; }
     .nav-label { font-size: 9px; color: inherit; }
+    
+    .loading { text-align: center; padding: 20px; color: #64748b; font-size: 12px; }
+    .spinner { border: 2px solid #1e293b; border-top: 2px solid #00f0ff; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin: 0 auto 8px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-  <!-- AUTH -->
+  <!-- AUTH VIEW -->
   <div id="authView" class="view active">
     <div class="auth-container">
       <div class="auth-card">
         <h1 class="auth-title">🇿🇲 AURA</h1>
-        <p class="auth-subtitle">Zambian Study Platform</p>
-        <form onsubmit="app.login(event)">
+        <p class="auth-subtitle">Zambian AI Study Platform</p>
+        <div class="error-msg" id="errorMsg"></div>
+        <div class="success-msg" id="successMsg"></div>
+
+        <form onsubmit="app.signup(event)" id="signupForm">
           <div class="form-group">
             <label class="form-label">Name</label>
-            <input type="text" id="nameInput" placeholder="Your name" required>
+            <input type="text" id="signupName" placeholder="Your name" required>
           </div>
           <div class="form-group">
             <label class="form-label">Email</label>
-            <input type="email" id="emailInput" placeholder="email@example.com" required>
+            <input type="email" id="signupEmail" placeholder="email@example.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="signupPassword" placeholder="Min 6 characters" required>
           </div>
           <div class="form-group">
             <label class="form-label">University</label>
-            <select id="uniInput" required>
+            <select id="signupUni" required>
               <option value="">Select University</option>
-              <option value="UNZA">UNZA</option>
-              <option value="CBU">CBU</option>
-              <option value="Mulungushi">Mulungushi</option>
-              <option value="LAMU">LAMU</option>
+              <option value="UNZA">UNZA - University of Zambia</option>
+              <option value="CBU">CBU - Copperbelt University</option>
+              <option value="Mulungushi">Mulungushi University</option>
+              <option value="LAMU">LAMU - Lusaka Apex Medical</option>
             </select>
           </div>
-          <button type="submit" class="btn">Enter AURA</button>
+          <button type="submit" class="btn">Create Account</button>
         </form>
+
+        <div style="text-align: center; margin-top: 16px; font-size: 11px; color: #64748b;">
+          Have account? <button type="button" onclick="app.toggleMode()" style="background: none; border: none; color: #00f0ff; cursor: pointer; font-weight: 600;">Sign In</button>
+        </div>
+
+        <form onsubmit="app.signin(event)" id="signinForm" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="signinEmail" placeholder="email@example.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="signinPassword" placeholder="Password" required>
+          </div>
+          <button type="submit" class="btn">Sign In</button>
+        </form>
+
+        <div style="text-align: center; margin-top: 16px; font-size: 11px; color: #64748b; display: none;" id="signinToggle">
+          New user? <button type="button" onclick="app.toggleMode()" style="background: none; border: none; color: #00f0ff; cursor: pointer; font-weight: 600;">Create Account</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- APP -->
+  <!-- APP VIEW -->
   <div id="appView" class="view">
     <div id="modal" class="modal">
       <div class="modal-box">
@@ -107,8 +166,8 @@
     <div class="app-container">
       <div class="header">
         <div class="header-title">🇿🇲 AURA</div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-          <div class="countdown" id="countdown">7d 0h</div>
+        <div class="header-controls">
+          <div class="countdown" id="countdown" onclick="app.showPaymentModal()">7d 0h</div>
           <button class="logout-btn" onclick="app.logout()">Logout</button>
         </div>
       </div>
@@ -123,7 +182,7 @@
 
         <!-- SCHOOLS -->
         <div id="schoolPage" class="page">
-          <button class="back-btn" onclick="app.backHome()">← Back</button>
+          <button class="back-btn" onclick="app.goPage('home')">← Back</button>
           <div class="page-title" id="schoolTitle">Schools</div>
           <p class="page-subtitle">Select a school/faculty</p>
           <div id="schoolList"></div>
@@ -131,7 +190,7 @@
 
         <!-- PROGRAMS -->
         <div id="programPage" class="page">
-          <button class="back-btn" onclick="app.backSchools()">← Back</button>
+          <button class="back-btn" onclick="app.goPage('school')">← Back</button>
           <div class="page-title" id="programTitle">Programs</div>
           <p class="page-subtitle">Select a program</p>
           <div id="programList"></div>
@@ -139,7 +198,7 @@
 
         <!-- YEARS -->
         <div id="yearPage" class="page">
-          <button class="back-btn" onclick="app.backPrograms()">← Back</button>
+          <button class="back-btn" onclick="app.goPage('program')">← Back</button>
           <div class="page-title">Academic Year</div>
           <p class="page-subtitle">Select a year</p>
           <div id="yearList"></div>
@@ -147,10 +206,39 @@
 
         <!-- COURSES -->
         <div id="coursePage" class="page">
-          <button class="back-btn" onclick="app.backYears()">← Back</button>
+          <button class="back-btn" onclick="app.goPage('year')">← Back</button>
           <div class="page-title">Courses</div>
-          <p class="page-subtitle">Select a course</p>
+          <p class="page-subtitle">Select a course or upload material</p>
           <div id="courseList"></div>
+        </div>
+
+        <!-- COURSE DETAIL -->
+        <div id="courseDetailPage" class="page">
+          <button class="back-btn" onclick="app.goPage('course')">← Back</button>
+          <div class="page-title" id="courseDetailTitle">Course</div>
+          <div id="uploadSection">
+            <div class="upload-area" onclick="document.getElementById('pdfUpload').click()">
+              <div class="upload-icon">📄</div>
+              <div class="upload-text">Upload PDF (notes, textbook, past papers)</div>
+              <input type="file" id="pdfUpload" accept=".pdf" onchange="app.uploadPDF(event)">
+            </div>
+          </div>
+          <div id="courseDetailContent"></div>
+        </div>
+
+        <!-- EXAM -->
+        <div id="examPage" class="page">
+          <button class="back-btn" onclick="app.goPage('courseDetail')">← Back</button>
+          <div class="page-title">Exam</div>
+          <p class="page-subtitle" id="examSubtitle">Answer all questions</p>
+          <div id="examContent"></div>
+        </div>
+
+        <!-- RESULTS -->
+        <div id="resultsPage" class="page">
+          <button class="back-btn" onclick="app.goPage('courseDetail')">← Back</button>
+          <div class="page-title">Results</div>
+          <div id="resultsContent"></div>
         </div>
 
         <!-- PROFILE -->
@@ -173,81 +261,157 @@
   </div>
 
   <script>
+    const SUPABASE_URL = 'https://fcmbhxwhfxklwxvggech.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_BueIEB3eheoTz85QFm0i5w_gpFvXqoo';
+    const CLAUDE_KEY = 'sk-ant-d01'; // Placeholder - user will need to add their key
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
     const DATA = {
       UNZA: {
         name: 'UNZA',
         icon: '🦅',
         schools: {
-          'School of Engineering': ['Civil Engineering', 'Electrical Engineering', 'Mechanical Engineering'],
-          'School of Medicine': ['Medicine & Surgery', 'Pharmacy', 'Nursing'],
+          'School of Engineering': ['Civil Engineering', 'Electrical Engineering', 'Mechanical Engineering', 'Agricultural Engineering'],
+          'School of Medicine': ['Medicine & Surgery', 'Pharmacy', 'Nursing', 'Biomedical Sciences'],
           'School of Law': ['Bachelor of Laws'],
-          'School of Business': ['Accounting', 'Business Admin', 'Marketing']
+          'School of Business': ['Accounting', 'Business Administration', 'Marketing', 'Finance']
         }
       },
       CBU: {
         name: 'CBU',
         icon: '⛏️',
         schools: {
-          'School of Engineering': ['Electrical Engineering', 'Mechanical Engineering', 'Mechatronics'],
-          'School of Medicine': ['Medicine & Surgery', 'Dental Surgery'],
-          'School of ICT': ['Computer Science', 'Software Engineering'],
-          'School of Business': ['Accounting', 'Business Admin']
+          'School of Engineering': ['Electrical Engineering', 'Mechanical Engineering', 'Mechatronics', 'Civil Engineering'],
+          'School of Medicine': ['Medicine & Surgery', 'Dental Surgery', 'Nursing'],
+          'School of ICT': ['Computer Science', 'Software Engineering', 'Information Technology'],
+          'School of Business': ['Accounting', 'Business Administration', 'Marketing']
         }
       },
       Mulungushi: {
         name: 'Mulungushi',
         icon: '📚',
         schools: {
-          'School of Engineering': ['Civil Engineering', 'Mechanical Engineering'],
-          'School of Medicine': ['Pharmacy', 'Nursing'],
-          'School of Business': ['Accounting', 'Marketing']
+          'School of Engineering': ['Civil Engineering', 'Mechanical Engineering', 'Electrical Engineering'],
+          'School of Medicine': ['Pharmacy', 'Nursing', 'Biomedical Sciences'],
+          'School of Business': ['Accounting', 'Business Administration', 'Marketing']
         }
       },
       LAMU: {
         name: 'LAMU',
         icon: '🏨',
         schools: {
-          'Faculty of Medicine': ['Medicine & Surgery'],
-          'Faculty of Health': ['Pharmacy', 'Physiotherapy']
+          'Faculty of Medicine': ['Medicine & Surgery', 'Clinical Sciences'],
+          'Faculty of Health Sciences': ['Pharmacy', 'Physiotherapy', 'Biomedical Sciences']
         }
       }
     };
 
-    const YEARS = ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'];
+    const YEARS = ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5', 'Year 6', 'Year 7'];
 
-    const COURSES = {
-      'Mathematics': '📚 MATHEMATICS\n⚡ Calculus, Algebra, Equations\n💡 Practice regularly!',
-      'Physics': '📚 PHYSICS\n⚡ Mechanics, Forces, Waves\n💡 SI units always!',
-      'Chemistry': '📚 CHEMISTRY\n⚡ Atoms, Bonds, Reactions\n💡 Balance equations!',
-      'Programming': '📚 PROGRAMMING\n⚡ Variables, Functions, OOP\n💡 Code every day!'
+    const SAMPLE_COURSES = {
+      'Mathematics': '📚 CALCULUS & ALGEBRA\n\n⚡ Key Topics:\n• Derivatives & Integration\n• Limits & Continuity\n• Matrix Operations\n• Differential Equations\n\n🔧 Zambian Applications:\n• Mining calculations\n• Dam engineering\n• Economic modeling\n\n💡 Study Tips:\n• Practice daily\n• Master fundamentals first\n• Use graphing tools',
+      'Physics': '📚 MECHANICS & ELECTRICITY\n\n⚡ Key Topics:\n• Newton\'s Laws\n• Energy & Momentum\n• Circuits & Magnetism\n• Waves & Sound\n\n📏 SI Units:\n• Force: Newton (N)\n• Energy: Joule (J)\n• Power: Watt (W)\n\n💡 Study Tips:\n• Always include units\n• Draw force diagrams\n• Practice problem-solving',
+      'Chemistry': '📚 ORGANIC & INORGANIC\n\n⚡ Key Topics:\n• Atomic Structure\n• Chemical Bonding\n• Reaction Types\n• Equilibrium\n\n🔧 Zambian Context:\n• Copper mining chemistry\n• Water treatment\n• Industrial processes\n\n💡 Study Tips:\n• Balance equations\n• Learn oxidation states\n• Understand reactions',
+      'Programming': '📚 PYTHON & JAVA\n\n⚡ Key Topics:\n• Variables & Data Types\n• Control Flow\n• Functions & OOP\n• Data Structures\n\n🔧 Projects:\n• Build applications\n• Problem-solving\n• Algorithm design\n\n💡 Study Tips:\n• Code daily\n• Debug effectively\n• Read others\' code'
     };
 
     class AuraApp {
       constructor() {
-        const saved = localStorage.getItem('auraUser');
-        if (saved) {
-          this.user = JSON.parse(saved);
+        this.user = null;
+        this.profile = null;
+        this.currentUni = null;
+        this.currentSchool = null;
+        this.currentProgram = null;
+        this.currentYear = null;
+        this.currentCourse = null;
+        this.examQuestions = [];
+        this.examAnswers = [];
+        this.checkAuth();
+      }
+
+      async checkAuth() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          this.user = session.user;
+          await this.loadProfile();
           this.showApp();
         }
       }
 
-      login(e) {
-        e.preventDefault();
-        const name = document.getElementById('nameInput').value;
-        const email = document.getElementById('emailInput').value;
-        const uni = document.getElementById('uniInput').value;
+      async loadProfile() {
+        const { data } = await supabase
+          .from('aura_profiles')
+          .select('*')
+          .eq('user_id', this.user.id)
+          .single();
+        if (data) this.profile = data;
+      }
 
-        this.user = { name, email, uni };
-        localStorage.setItem('auraUser', JSON.stringify(this.user));
-        this.showApp();
+      toggleMode() {
+        document.getElementById('signupForm').style.display = document.getElementById('signupForm').style.display === 'none' ? 'block' : 'none';
+        document.getElementById('signinForm').style.display = document.getElementById('signinForm').style.display === 'none' ? 'block' : 'none';
+        document.getElementById('signinToggle').style.display = document.getElementById('signinToggle').style.display === 'none' ? 'block' : 'none';
+      }
+
+      async signup(e) {
+        e.preventDefault();
+        const name = document.getElementById('signupName').value;
+        const email = document.getElementById('signupEmail').value;
+        const password = document.getElementById('signupPassword').value;
+        const uni = document.getElementById('signupUni').value;
+
+        try {
+          const { data: { user }, error: authError } = await supabase.auth.signUp({ email, password });
+          if (authError) throw authError;
+
+          const subEnd = new Date();
+          subEnd.setDate(subEnd.getDate() + 7);
+
+          const { error: profileError } = await supabase.from('aura_profiles').insert({
+            user_id: user.id,
+            name,
+            email,
+            university: uni,
+            subscription_end: subEnd.toISOString(),
+            is_ceo: email === 'Mwewadavid781@gmail.com'
+          });
+          if (profileError) throw profileError;
+
+          this.user = user;
+          this.profile = { name, email, university: uni, subscription_end: subEnd.toISOString() };
+          document.getElementById('successMsg').textContent = '✅ Account created! Signing in...';
+          document.getElementById('successMsg').classList.add('show');
+          setTimeout(() => this.showApp(), 1500);
+        } catch (err) {
+          document.getElementById('errorMsg').textContent = err.message;
+          document.getElementById('errorMsg').classList.add('show');
+        }
+      }
+
+      async signin(e) {
+        e.preventDefault();
+        const email = document.getElementById('signinEmail').value;
+        const password = document.getElementById('signinPassword').value;
+
+        try {
+          const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          this.user = user;
+          await this.loadProfile();
+          this.showApp();
+        } catch (err) {
+          document.getElementById('errorMsg').textContent = err.message;
+          document.getElementById('errorMsg').classList.add('show');
+        }
       }
 
       showApp() {
         document.getElementById('authView').classList.remove('active');
         document.getElementById('appView').classList.add('active');
-        document.getElementById('greeting').textContent = `Hi ${this.user.name}!`;
-        document.getElementById('profileName').textContent = this.user.name;
-        document.getElementById('profileUni').textContent = `${this.user.uni} University`;
+        document.getElementById('greeting').textContent = `Hi ${this.profile.name}!`;
+        document.getElementById('profileName').textContent = this.profile.name;
+        document.getElementById('profileUni').textContent = this.profile.university;
         this.renderUnis();
         this.startCountdown();
       }
@@ -261,134 +425,792 @@
       }
 
       selectUni(code) {
+        this.currentUni = code;
         const schools = Object.keys(DATA[code].schools);
         let html = '';
         schools.forEach(s => {
-          html += `<div class="list-item" onclick="app.selectSchool('${code}','${s}')"><h3>${s}</h3></div>`;
+          html += `<div class="list-item" onclick="app.selectSchool('${s}')"><h3>${s}</h3></div>`;
         });
         document.getElementById('schoolList').innerHTML = html;
         document.getElementById('schoolTitle').textContent = DATA[code].name;
         this.goPage('school');
-        this.currentUni = code;
       }
 
-      selectSchool(uni, school) {
-        const programs = DATA[uni].schools[school];
+      selectSchool(school) {
+        this.currentSchool = school;
+        const programs = DATA[this.currentUni].schools[school];
         let html = '';
         programs.forEach(p => {
-          html += `<div class="list-item" onclick="app.selectProgram('${uni}','${school}','${p}')"><h3>${p}</h3></div>`;
+          html += `<div class="list-item" onclick="app.selectProgram('${p}')"><h3>${p}</h3></div>`;
         });
         document.getElementById('programList').innerHTML = html;
         document.getElementById('programTitle').textContent = school;
         this.goPage('program');
-        this.currentSchool = school;
       }
 
-      selectProgram(uni, school, prog) {
+      selectProgram(prog) {
+        this.currentProgram = prog;
         let html = '';
         YEARS.forEach(y => {
-          html += `<div class="list-item" onclick="app.selectYear('${uni}','${school}','${prog}','${y}')"><h3>${y}</h3></div>`;
+          html += `<div class="list-item" onclick="app.selectYear('${y}')"><h3>${y}</h3></div>`;
         });
         document.getElementById('yearList').innerHTML = html;
         this.goPage('year');
-        this.currentProgram = prog;
       }
 
-      selectYear(uni, school, prog, year) {
+      selectYear(year) {
+        this.currentYear = year;
         let html = '';
-        Object.keys(COURSES).forEach(c => {
-          html += `<div class="list-item" onclick="app.showCourse('${c}')"><h3>${c}</h3><p>${year}</p></div>`;
+        Object.keys(SAMPLE_COURSES).forEach(c => {
+          html += `<div class="list-item" onclick="app.selectCourse('${c}')"><h3>${c}</h3><p>${year}</p></div>`;
         });
         document.getElementById('courseList').innerHTML = html;
         this.goPage('course');
-        this.currentYear = year;
       }
 
-      showCourse(course) {
-        const html = `
-          <h2 class="modal-title">${course}</h2>
-          <div class="summary">${COURSES[course]}</div>
-          <button class="exam-btn" onclick="app.startExam('${course}')">📝 Start Exam (3 Q)</button>
-        `;
-        document.getElementById('modalContent').innerHTML = html;
-        document.getElementById('modal').classList.add('show');
+      selectCourse(course) {
+        this.currentCourse = course;
+        document.getElementById('courseDetailTitle').textContent = course;
+        document.getElementById('courseDetailContent').innerHTML = `<div class="summary">${SAMPLE_COURSES[course]}</div><button class="exam-btn" onclick="app.startExam()">📝 Start Exam (30 Questions)</button>`;
+        this.goPage('courseDetail');
       }
 
-      startExam(course) {
+      async uploadPDF(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        // TODO: Process PDF and generate questions using Claude API
+        alert('PDF upload feature coming soon! Currently using sample questions.');
+      }
+
+      async startExam() {
+        // For now, generate sample questions. In production, use Claude API
+        this.examQuestions = this.generateQuestions(30);
+        this.examAnswers = new Array(this.examQuestions.length).fill(null);
+        this.renderExam();
+        this.goPage('exam');
+      }
+
+      generateQuestions(count) {
         const questions = [
-          { text: 'Q1: Select correct answer', opts: ['A: Option A', 'B: Option B', 'C: Option C', 'D: Option D'], correct: 0 },
-          { text: 'Q2: Pick the right one', opts: ['A: First', 'B: Second', 'C: Third', 'D: Fourth'], correct: 1 },
-          { text: 'Q3: Find the solution', opts: ['A: Answer 1', 'B: Answer 2', 'C: Answer 3', 'D: Answer 4'], correct: 2 }
+          { q: 'What is the fundamental principle in this course?', opts: ['Option A', 'Option B', 'Option C', 'Option D'], correct: 0, exp: 'Option A is correct because...' },
+          { q: 'Which of the following is the best example?', opts: ['Example 1', 'Example 2', 'Example 3', 'Example 4'], correct: 1, exp: 'Example 2 demonstrates the concept properly.' },
+          { q: 'How do you apply this concept?', opts: ['Method A', 'Method B', 'Method C', 'Method D'], correct: 2, exp: 'Method C is the standard approach used in practice.' },
+          // Add more to reach 30
         ];
+        // Repeat to get to 30
+        while (questions.length < count) {
+          questions.push({
+            q: `Question ${questions.length + 1}: What is your understanding?`,
+            opts: [`Option ${Math.floor(Math.random() * 4) + 1}`, `Option ${Math.floor(Math.random() * 4) + 1}`, `Option ${Math.floor(Math.random() * 4) + 1}`, `Option ${Math.floor(Math.random() * 4) + 1}`],
+            correct: Math.floor(Math.random() * 4),
+            exp: 'This is the correct explanation for this question.'
+          });
+        }
+        return questions.slice(0, count);
+      }
 
-        let html = `<h2 class="modal-title">${course} Exam</h2>`;
-        questions.forEach((q, i) => {
-          html += `<div class="question-box"><div class="question-text">${q.text}</div><div class="options">`;
-          q.opts.forEach((o, j) => {
-            html += `<button class="option-btn" onclick="app.answer(this, ${j}, ${q.correct})">${o}</button>`;
+      renderExam() {
+        let html = '';
+        this.examQuestions.forEach((q, i) => {
+          html += `<div class="question-box"><div class="question-num">Q${i + 1}/${this.examQuestions.length}</div><div class="question-text">${q.q}</div><div class="options">`;
+          q.opts.forEach((opt, j) => {
+            html += `<button class="option-btn" onclick="app.answerQuestion(${i}, ${j})">${String.fromCharCode(65 + j)}: ${opt}</button>`;
           });
           html += `</div></div>`;
         });
-        html += `<button class="exam-btn" onclick="app.finishExam()">See Score</button>`;
-        document.getElementById('modalContent').innerHTML = html;
+        html += `<button class="exam-btn" onclick="app.finishExam()">Submit Exam</button>`;
+        document.getElementById('examContent').innerHTML = html;
       }
 
-      answer(btn, sel, cor) {
-        const par = btn.parentElement;
-        par.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
-        if (sel === cor) {
-          btn.classList.add('correct');
-          window.score = (window.score || 0) + 1;
-        } else {
-          btn.classList.add('incorrect');
-          par.querySelectorAll('.option-btn')[cor].classList.add('correct');
-        }
-        window.total = (window.total || 0) + 1;
+      answerQuestion(qIndex, optIndex) {
+        this.examAnswers[qIndex] = optIndex;
+        // Update button styles
+        const questionDiv = document.querySelectorAll('.question-box')[qIndex];
+        const buttons = questionDiv.querySelectorAll('.option-btn');
+        buttons.forEach((btn, i) => {
+          btn.classList.remove('correct', 'incorrect');
+          if (i === optIndex) {
+            if (this.examQuestions[qIndex].correct === optIndex) {
+              btn.classList.add('correct');
+            } else {
+              btn.classList.add('incorrect');
+              buttons[this.examQuestions[qIndex].correct].classList.add('correct');
+            }
+          }
+        });
       }
 
       finishExam() {
-        const pct = Math.round((window.score / window.total) * 100);
-        const html = `
-          <h2 class="modal-title">✅ Exam Complete!</h2>
-          <div class="score-box"><div class="score-num">${pct}%</div><div class="score-label">${window.score}/${window.total} correct</div></div>
-          <button class="exam-btn" onclick="app.closeModal()">Back</button>
-        `;
-        document.getElementById('modalContent').innerHTML = html;
-        window.score = 0;
-        window.total = 0;
-      }
-
-      closeModal() {
-        document.getElementById('modal').classList.remove('show');
+        let correct = 0;
+        this.examAnswers.forEach((ans, i) => {
+          if (ans === this.examQuestions[i].correct) correct++;
+        });
+        const percentage = Math.round((correct / this.examQuestions.length) * 100);
+        
+        let html = `<div class="score-box"><div class="score-num">${percentage}%</div><div class="score-label">${correct}/${this.examQuestions.length} correct</div></div>`;
+        
+        // Show explanations
+        this.examQuestions.forEach((q, i) => {
+          const answered = this.examAnswers[i];
+          const isCorrect = answered === q.correct;
+          html += `<div class="question-box"><div class="question-num">Q${i + 1}</div><div class="question-text">${q.q}</div><div style="font-size: 11px; margin: 8px 0; color: ${isCorrect ? '#05ffb2' : '#ff2e93'};">${isCorrect ? '✅ Correct' : '❌ Incorrect'}</div><div class="explanation">💡 ${q.exp}</div></div>`;
+        });
+        
+        html += `<button class="exam-btn" onclick="app.goPage('courseDetail')" style="margin-top: 16px;">Back to Course</button>`;
+        document.getElementById('resultsContent').innerHTML = html;
+        this.goPage('results');
       }
 
       goPage(page) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(page + 'Page').classList.add('active');
+        const btn = document.querySelector(`[onclick="app.goPage('${page}')"]`);
+        if (btn) btn.classList.add('active');
       }
 
-      backHome() { this.goPage('home'); }
-      backSchools() { this.goPage('school'); }
-      backPrograms() { this.goPage('program'); }
-      backYears() { this.goPage('year'); }
+      closeModal() {
+        document.getElementById('modal').classList.remove('show');
+      }
+
+      showPaymentModal() {
+        const html = `
+          <h2 class="modal-title">💳 Renew Access</h2>
+          <p style="font-size: 11px; color: #64748b; margin-bottom: 12px;">K10 per week</p>
+          <div style="background: #060913; padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+            <h4 style="color: #00f0ff; margin-bottom: 6px; font-size: 11px;">📱 MTN Mobile Money:</h4>
+            <p style="color: #64748b; font-size: 10px;">Send K10 to: <strong style="color: #05ffb2;">0964969767</strong></p>
+            <p style="color: #64748b; font-size: 10px; margin-top: 8px;">Then WhatsApp proof: <strong style="color: #05ffb2;">+260750109917</strong></p>
+            <p style="color: #94a3b8; font-size: 10px; margin-top: 8px; font-style: italic;">Unlocked within 1 hour!</p>
+          </div>
+          <button class="exam-btn" onclick="window.open('https://wa.me/260750109917?text=Hi%20I%20paid%20K10%20for%20Aura%20Academy%20access', '_blank')">📱 Contact to Unlock</button>
+        `;
+        document.getElementById('modalContent').innerHTML = html;
+        document.getElementById('modal').classList.add('show');
+      }
 
       startCountdown() {
         setInterval(() => {
-          const d = new Date();
-          d.setDate(d.getDate() + 7);
-          const diff = d - Date.now();
+          const diff = new Date(this.profile.subscription_end) - Date.now();
           const days = Math.floor(diff / (1000*60*60*24));
           const hrs = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
-          document.getElementById('countdown').textContent = `${days}d ${hrs}h`;
+          document.getElementById('countdown').textContent = days < 0 ? 'LOCKED' : `${days}d ${hrs}h`;
         }, 1000);
       }
 
-      logout() {
-        localStorage.removeItem('auraUser');
-        document.getElementById('appView').classList.remove('active');
-        document.getElementById('authView').classList.add('active');
-        location.reload();
+      async logout() {
+        await supabase.auth.signOut();
+        window.location.reload();
+      }
+    }
+
+    const app = new AuraApp();
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AURA ACADEMY - Zambian AI Study Platform</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0e1a; color: #f1f5f9; overflow-x: hidden; }
+    .view { display: none; } .view.active { display: block; }
+    
+    /* AUTH SECTION */
+    .auth-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #0f1626 0%, #0a0e1a 100%); }
+    .auth-card { background: #0f1626; border: 1px solid #1e293b; border-radius: 12px; padding: 28px; max-width: 400px; width: 100%; }
+    .auth-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; color: #00f0ff; }
+    .auth-subtitle { font-size: 11px; color: #64748b; margin-bottom: 24px; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; display: block; }
+    input, select, textarea { width: 100%; padding: 10px; border: 1px solid #1e293b; border-radius: 6px; background: #060913; color: #f1f5f9; font-size: 13px; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #00f0ff; box-shadow: 0 0 15px rgba(0, 240, 255, 0.2); }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 700; font-family: inherit; transition: all 0.3s; background: #00f0ff; color: #0a0e1a; }
+    .btn:hover { box-shadow: 0 0 30px rgba(0, 240, 255, 0.5); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .error-msg { background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; color: #ff2e93; padding: 8px; border-radius: 4px; font-size: 11px; margin-bottom: 12px; display: none; }
+    .error-msg.show { display: block; }
+    .success-msg { background: rgba(5, 255, 178, 0.1); border: 1px solid #05ffb2; color: #05ffb2; padding: 8px; border-radius: 4px; font-size: 11px; margin-bottom: 12px; display: none; }
+    .success-msg.show { display: block; }
+    
+    /* APP SECTION */
+    .app-container { display: flex; flex-direction: column; height: 100vh; }
+    .header { padding: 14px 20px; border-bottom: 1px solid #1e293b; background: #0f1626; display: flex; justify-content: space-between; align-items: center; z-index: 100; }
+    .header-title { font-size: 16px; font-weight: 700; color: #00f0ff; }
+    .header-controls { display: flex; gap: 10px; align-items: center; }
+    .countdown { background: rgba(255, 46, 147, 0.1); border: 1px solid #ff2e93; padding: 6px 10px; border-radius: 4px; font-size: 11px; color: #ff2e93; font-weight: 700; cursor: pointer; }
+    .logout-btn { background: transparent; border: 1px solid #1e293b; color: #64748b; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: 600; }
+    .logout-btn:hover { border-color: #ff2e93; color: #ff2e93; }
+    
+    .content { flex: 1; overflow-y: auto; padding: 16px 20px 80px; }
+    .page { display: none; } .page.active { display: block; }
+    .back-btn { background: none; border: none; color: #00f0ff; cursor: pointer; font-weight: 600; font-size: 12px; margin-bottom: 12px; }
+    .page-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .page-subtitle { font-size: 11px; color: #64748b; margin-bottom: 16px; }
+    
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .card { background: linear-gradient(135deg, #1a2a3a 0%, #0f1626 100%); border: 1px solid #1e293b; border-radius: 8px; padding: 14px; cursor: pointer; transition: all 0.3s; }
+    .card:hover { border-color: #00f0ff; box-shadow: 0 0 20px rgba(0, 240, 255, 0.1); }
+    .card-icon { font-size: 28px; margin-bottom: 8px; }
+    .card-title { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+    .card-meta { font-size: 10px; color: #64748b; }
+    
+    .list-item { background: #0f1626; border: 1px solid #1e293b; border-radius: 6px; padding: 12px; margin-bottom: 10px; cursor: pointer; transition: all 0.3s; }
+    .list-item:hover { border-color: #00f0ff; background: rgba(0, 240, 255, 0.05); }
+    .list-item h3 { font-size: 12px; font-weight: 600; margin-bottom: 2px; }
+    .list-item p { font-size: 10px; color: #64748b; }
+    
+    .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); display: none; align-items: center; justify-content: center; z-index: 200; overflow-y: auto; padding: 20px; }
+    .modal.show { display: flex; }
+    .modal-box { background: #0f1626; border: 1px solid #1e293b; border-radius: 10px; padding: 20px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
+    .modal-close { position: absolute; top: 16px; right: 16px; background: none; border: none; color: #64748b; font-size: 20px; cursor: pointer; }
+    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #00f0ff; }
+    
+    .summary { font-size: 11px; line-height: 1.6; color: #94a3b8; margin-bottom: 16px; white-space: pre-wrap; }
+    .upload-area { background: #060913; border: 2px dashed #1e293b; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s; margin-bottom: 16px; }
+    .upload-area:hover { border-color: #00f0ff; background: rgba(0, 240, 255, 0.05); }
+    .upload-icon { font-size: 32px; margin-bottom: 8px; }
+    .upload-text { font-size: 11px; color: #94a3b8; }
+    input[type="file"] { display: none; }
+    
+    .exam-btn { width: 100%; padding: 10px; background: linear-gradient(90deg, #00f0ff, #05ffb2); color: #0a0e1a; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 12px; font-family: inherit; }
+    
+    .question-box { background: #060913; border: 1px solid #1e293b; padding: 14px; border-radius: 6px; margin-bottom: 14px; }
+    .question-num { font-size: 10px; color: #00f0ff; font-weight: 700; margin-bottom: 4px; }
+    .question-text { font-size: 12px; font-weight: 600; margin-bottom: 10px; }
+    .options { display: flex; flex-direction: column; gap: 6px; }
+    .option-btn { background: transparent; border: 1.5px solid #1e293b; padding: 8px; border-radius: 4px; cursor: pointer; font-size: 11px; text-align: left; font-family: inherit; transition: all 0.3s; }
+    .option-btn:hover { border-color: #00f0ff; }
+    .option-btn.correct { border-color: #05ffb2; background: rgba(5, 255, 178, 0.1); color: #05ffb2; }
+    .option-btn.incorrect { border-color: #ff2e93; background: rgba(255, 46, 147, 0.1); color: #ff2e93; }
+    .option-btn:disabled { cursor: not-allowed; }
+    
+    .explanation { background: rgba(0, 240, 255, 0.05); border-left: 2px solid #00f0ff; padding: 8px; border-radius: 4px; margin-top: 8px; font-size: 10px; color: #94a3b8; }
+    
+    .score-box { text-align: center; padding: 16px; background: rgba(0, 240, 255, 0.1); border-radius: 6px; margin-bottom: 16px; }
+    .score-num { font-size: 36px; font-weight: 700; color: #00f0ff; }
+    .score-label { font-size: 10px; color: #64748b; margin-top: 4px; }
+    
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: #0f1626; border-top: 1px solid #1e293b; display: flex; justify-content: space-around; align-items: center; z-index: 100; }
+    .nav-btn { background: none; border: none; color: #64748b; cursor: pointer; font-size: 20px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px; transition: all 0.3s; }
+    .nav-btn.active { color: #00f0ff; }
+    .nav-label { font-size: 9px; color: inherit; }
+    
+    .loading { text-align: center; padding: 20px; color: #64748b; font-size: 12px; }
+    .spinner { border: 2px solid #1e293b; border-top: 2px solid #00f0ff; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin: 0 auto 8px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <!-- AUTH VIEW -->
+  <div id="authView" class="view active">
+    <div class="auth-container">
+      <div class="auth-card">
+        <h1 class="auth-title">🇿🇲 AURA</h1>
+        <p class="auth-subtitle">Zambian AI Study Platform</p>
+        <div class="error-msg" id="errorMsg"></div>
+        <div class="success-msg" id="successMsg"></div>
+
+        <form onsubmit="app.signup(event)" id="signupForm">
+          <div class="form-group">
+            <label class="form-label">Name</label>
+            <input type="text" id="signupName" placeholder="Your name" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="signupEmail" placeholder="email@example.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="signupPassword" placeholder="Min 6 characters" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">University</label>
+            <select id="signupUni" required>
+              <option value="">Select University</option>
+              <option value="UNZA">UNZA - University of Zambia</option>
+              <option value="CBU">CBU - Copperbelt University</option>
+              <option value="Mulungushi">Mulungushi University</option>
+              <option value="LAMU">LAMU - Lusaka Apex Medical</option>
+            </select>
+          </div>
+          <button type="submit" class="btn">Create Account</button>
+        </form>
+
+        <div style="text-align: center; margin-top: 16px; font-size: 11px; color: #64748b;">
+          Have account? <button type="button" onclick="app.toggleMode()" style="background: none; border: none; color: #00f0ff; cursor: pointer; font-weight: 600;">Sign In</button>
+        </div>
+
+        <form onsubmit="app.signin(event)" id="signinForm" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" id="signinEmail" placeholder="email@example.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" id="signinPassword" placeholder="Password" required>
+          </div>
+          <button type="submit" class="btn">Sign In</button>
+        </form>
+
+        <div style="text-align: center; margin-top: 16px; font-size: 11px; color: #64748b; display: none;" id="signinToggle">
+          New user? <button type="button" onclick="app.toggleMode()" style="background: none; border: none; color: #00f0ff; cursor: pointer; font-weight: 600;">Create Account</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP VIEW -->
+  <div id="appView" class="view">
+    <div id="modal" class="modal">
+      <div class="modal-box">
+        <button class="modal-close" onclick="app.closeModal()">✕</button>
+        <div id="modalContent"></div>
+      </div>
+    </div>
+
+    <div class="app-container">
+      <div class="header">
+        <div class="header-title">🇿🇲 AURA</div>
+        <div class="header-controls">
+          <div class="countdown" id="countdown" onclick="app.showPaymentModal()">7d 0h</div>
+          <button class="logout-btn" onclick="app.logout()">Logout</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- HOME -->
+        <div id="homePage" class="page active">
+          <div class="page-title">Welcome!</div>
+          <p class="page-subtitle" id="greeting">Hi there!</p>
+          <div id="uniGrid"></div>
+        </div>
+
+        <!-- SCHOOLS -->
+        <div id="schoolPage" class="page">
+          <button class="back-btn" onclick="app.goPage('home')">← Back</button>
+          <div class="page-title" id="schoolTitle">Schools</div>
+          <p class="page-subtitle">Select a school/faculty</p>
+          <div id="schoolList"></div>
+        </div>
+
+        <!-- PROGRAMS -->
+        <div id="programPage" class="page">
+          <button class="back-btn" onclick="app.goPage('school')">← Back</button>
+          <div class="page-title" id="programTitle">Programs</div>
+          <p class="page-subtitle">Select a program</p>
+          <div id="programList"></div>
+        </div>
+
+        <!-- YEARS -->
+        <div id="yearPage" class="page">
+          <button class="back-btn" onclick="app.goPage('program')">← Back</button>
+          <div class="page-title">Academic Year</div>
+          <p class="page-subtitle">Select a year</p>
+          <div id="yearList"></div>
+        </div>
+
+        <!-- COURSES -->
+        <div id="coursePage" class="page">
+          <button class="back-btn" onclick="app.goPage('year')">← Back</button>
+          <div class="page-title">Courses</div>
+          <p class="page-subtitle">Select a course or upload material</p>
+          <div id="courseList"></div>
+        </div>
+
+        <!-- COURSE DETAIL -->
+        <div id="courseDetailPage" class="page">
+          <button class="back-btn" onclick="app.goPage('course')">← Back</button>
+          <div class="page-title" id="courseDetailTitle">Course</div>
+          <div id="uploadSection">
+            <div class="upload-area" onclick="document.getElementById('pdfUpload').click()">
+              <div class="upload-icon">📄</div>
+              <div class="upload-text">Upload PDF (notes, textbook, past papers)</div>
+              <input type="file" id="pdfUpload" accept=".pdf" onchange="app.uploadPDF(event)">
+            </div>
+          </div>
+          <div id="courseDetailContent"></div>
+        </div>
+
+        <!-- EXAM -->
+        <div id="examPage" class="page">
+          <button class="back-btn" onclick="app.goPage('courseDetail')">← Back</button>
+          <div class="page-title">Exam</div>
+          <p class="page-subtitle" id="examSubtitle">Answer all questions</p>
+          <div id="examContent"></div>
+        </div>
+
+        <!-- RESULTS -->
+        <div id="resultsPage" class="page">
+          <button class="back-btn" onclick="app.goPage('courseDetail')">← Back</button>
+          <div class="page-title">Results</div>
+          <div id="resultsContent"></div>
+        </div>
+
+        <!-- PROFILE -->
+        <div id="profilePage" class="page">
+          <div class="page-title">Profile</div>
+          <div class="list-item">
+            <h3 id="profileName">Name</h3>
+            <p id="profileUni">University</p>
+          </div>
+          <button class="btn" style="margin-top: 16px;" onclick="app.logout()">Logout</button>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <button class="nav-btn active" onclick="app.goPage('home')">🏠<span class="nav-label">Home</span></button>
+        <button class="nav-btn" onclick="app.goPage('course')">📚<span class="nav-label">Courses</span></button>
+        <button class="nav-btn" onclick="app.goPage('profile')">👤<span class="nav-label">Profile</span></button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://fcmbhxwhfxklwxvggech.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_BueIEB3eheoTz85QFm0i5w_gpFvXqoo';
+    const CLAUDE_KEY = 'sk-ant-d01'; // Placeholder - user will need to add their key
+    
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const DATA = {
+      UNZA: {
+        name: 'UNZA',
+        icon: '🦅',
+        schools: {
+          'School of Engineering': ['Civil Engineering', 'Electrical Engineering', 'Mechanical Engineering', 'Agricultural Engineering'],
+          'School of Medicine': ['Medicine & Surgery', 'Pharmacy', 'Nursing', 'Biomedical Sciences'],
+          'School of Law': ['Bachelor of Laws'],
+          'School of Business': ['Accounting', 'Business Administration', 'Marketing', 'Finance']
+        }
+      },
+      CBU: {
+        name: 'CBU',
+        icon: '⛏️',
+        schools: {
+          'School of Engineering': ['Electrical Engineering', 'Mechanical Engineering', 'Mechatronics', 'Civil Engineering'],
+          'School of Medicine': ['Medicine & Surgery', 'Dental Surgery', 'Nursing'],
+          'School of ICT': ['Computer Science', 'Software Engineering', 'Information Technology'],
+          'School of Business': ['Accounting', 'Business Administration', 'Marketing']
+        }
+      },
+      Mulungushi: {
+        name: 'Mulungushi',
+        icon: '📚',
+        schools: {
+          'School of Engineering': ['Civil Engineering', 'Mechanical Engineering', 'Electrical Engineering'],
+          'School of Medicine': ['Pharmacy', 'Nursing', 'Biomedical Sciences'],
+          'School of Business': ['Accounting', 'Business Administration', 'Marketing']
+        }
+      },
+      LAMU: {
+        name: 'LAMU',
+        icon: '🏨',
+        schools: {
+          'Faculty of Medicine': ['Medicine & Surgery', 'Clinical Sciences'],
+          'Faculty of Health Sciences': ['Pharmacy', 'Physiotherapy', 'Biomedical Sciences']
+        }
+      }
+    };
+
+    const YEARS = ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5', 'Year 6', 'Year 7'];
+
+    const SAMPLE_COURSES = {
+      'Mathematics': '📚 CALCULUS & ALGEBRA\n\n⚡ Key Topics:\n• Derivatives & Integration\n• Limits & Continuity\n• Matrix Operations\n• Differential Equations\n\n🔧 Zambian Applications:\n• Mining calculations\n• Dam engineering\n• Economic modeling\n\n💡 Study Tips:\n• Practice daily\n• Master fundamentals first\n• Use graphing tools',
+      'Physics': '📚 MECHANICS & ELECTRICITY\n\n⚡ Key Topics:\n• Newton\'s Laws\n• Energy & Momentum\n• Circuits & Magnetism\n• Waves & Sound\n\n📏 SI Units:\n• Force: Newton (N)\n• Energy: Joule (J)\n• Power: Watt (W)\n\n💡 Study Tips:\n• Always include units\n• Draw force diagrams\n• Practice problem-solving',
+      'Chemistry': '📚 ORGANIC & INORGANIC\n\n⚡ Key Topics:\n• Atomic Structure\n• Chemical Bonding\n• Reaction Types\n• Equilibrium\n\n🔧 Zambian Context:\n• Copper mining chemistry\n• Water treatment\n• Industrial processes\n\n💡 Study Tips:\n• Balance equations\n• Learn oxidation states\n• Understand reactions',
+      'Programming': '📚 PYTHON & JAVA\n\n⚡ Key Topics:\n• Variables & Data Types\n• Control Flow\n• Functions & OOP\n• Data Structures\n\n🔧 Projects:\n• Build applications\n• Problem-solving\n• Algorithm design\n\n💡 Study Tips:\n• Code daily\n• Debug effectively\n• Read others\' code'
+    };
+
+    class AuraApp {
+      constructor() {
+        this.user = null;
+        this.profile = null;
+        this.currentUni = null;
+        this.currentSchool = null;
+        this.currentProgram = null;
+        this.currentYear = null;
+        this.currentCourse = null;
+        this.examQuestions = [];
+        this.examAnswers = [];
+        this.checkAuth();
+      }
+
+      async checkAuth() {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          this.user = session.user;
+          await this.loadProfile();
+          this.showApp();
+        }
+      }
+
+      async loadProfile() {
+        const { data } = await supabase
+          .from('aura_profiles')
+          .select('*')
+          .eq('user_id', this.user.id)
+          .single();
+        if (data) this.profile = data;
+      }
+
+      toggleMode() {
+        document.getElementById('signupForm').style.display = document.getElementById('signupForm').style.display === 'none' ? 'block' : 'none';
+        document.getElementById('signinForm').style.display = document.getElementById('signinForm').style.display === 'none' ? 'block' : 'none';
+        document.getElementById('signinToggle').style.display = document.getElementById('signinToggle').style.display === 'none' ? 'block' : 'none';
+      }
+
+      async signup(e) {
+        e.preventDefault();
+        const name = document.getElementById('signupName').value;
+        const email = document.getElementById('signupEmail').value;
+        const password = document.getElementById('signupPassword').value;
+        const uni = document.getElementById('signupUni').value;
+
+        try {
+          const { data: { user }, error: authError } = await supabase.auth.signUp({ email, password });
+          if (authError) throw authError;
+
+          const subEnd = new Date();
+          subEnd.setDate(subEnd.getDate() + 7);
+
+          const { error: profileError } = await supabase.from('aura_profiles').insert({
+            user_id: user.id,
+            name,
+            email,
+            university: uni,
+            subscription_end: subEnd.toISOString(),
+            is_ceo: email === 'Mwewadavid781@gmail.com'
+          });
+          if (profileError) throw profileError;
+
+          this.user = user;
+          this.profile = { name, email, university: uni, subscription_end: subEnd.toISOString() };
+          document.getElementById('successMsg').textContent = '✅ Account created! Signing in...';
+          document.getElementById('successMsg').classList.add('show');
+          setTimeout(() => this.showApp(), 1500);
+        } catch (err) {
+          document.getElementById('errorMsg').textContent = err.message;
+          document.getElementById('errorMsg').classList.add('show');
+        }
+      }
+
+      async signin(e) {
+        e.preventDefault();
+        const email = document.getElementById('signinEmail').value;
+        const password = document.getElementById('signinPassword').value;
+
+        try {
+          const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          this.user = user;
+          await this.loadProfile();
+          this.showApp();
+        } catch (err) {
+          document.getElementById('errorMsg').textContent = err.message;
+          document.getElementById('errorMsg').classList.add('show');
+        }
+      }
+
+      showApp() {
+        document.getElementById('authView').classList.remove('active');
+        document.getElementById('appView').classList.add('active');
+        document.getElementById('greeting').textContent = `Hi ${this.profile.name}!`;
+        document.getElementById('profileName').textContent = this.profile.name;
+        document.getElementById('profileUni').textContent = this.profile.university;
+        this.renderUnis();
+        this.startCountdown();
+      }
+
+      renderUnis() {
+        let html = '';
+        for (const [code, data] of Object.entries(DATA)) {
+          html += `<div class="card" onclick="app.selectUni('${code}')"><div class="card-icon">${data.icon}</div><div class="card-title">${data.name}</div></div>`;
+        }
+        document.getElementById('uniGrid').innerHTML = html;
+      }
+
+      selectUni(code) {
+        this.currentUni = code;
+        const schools = Object.keys(DATA[code].schools);
+        let html = '';
+        schools.forEach(s => {
+          html += `<div class="list-item" onclick="app.selectSchool('${s}')"><h3>${s}</h3></div>`;
+        });
+        document.getElementById('schoolList').innerHTML = html;
+        document.getElementById('schoolTitle').textContent = DATA[code].name;
+        this.goPage('school');
+      }
+
+      selectSchool(school) {
+        this.currentSchool = school;
+        const programs = DATA[this.currentUni].schools[school];
+        let html = '';
+        programs.forEach(p => {
+          html += `<div class="list-item" onclick="app.selectProgram('${p}')"><h3>${p}</h3></div>`;
+        });
+        document.getElementById('programList').innerHTML = html;
+        document.getElementById('programTitle').textContent = school;
+        this.goPage('program');
+      }
+
+      selectProgram(prog) {
+        this.currentProgram = prog;
+        let html = '';
+        YEARS.forEach(y => {
+          html += `<div class="list-item" onclick="app.selectYear('${y}')"><h3>${y}</h3></div>`;
+        });
+        document.getElementById('yearList').innerHTML = html;
+        this.goPage('year');
+      }
+
+      selectYear(year) {
+        this.currentYear = year;
+        let html = '';
+        Object.keys(SAMPLE_COURSES).forEach(c => {
+          html += `<div class="list-item" onclick="app.selectCourse('${c}')"><h3>${c}</h3><p>${year}</p></div>`;
+        });
+        document.getElementById('courseList').innerHTML = html;
+        this.goPage('course');
+      }
+
+      selectCourse(course) {
+        this.currentCourse = course;
+        document.getElementById('courseDetailTitle').textContent = course;
+        document.getElementById('courseDetailContent').innerHTML = `<div class="summary">${SAMPLE_COURSES[course]}</div><button class="exam-btn" onclick="app.startExam()">📝 Start Exam (30 Questions)</button>`;
+        this.goPage('courseDetail');
+      }
+
+      async uploadPDF(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        // TODO: Process PDF and generate questions using Claude API
+        alert('PDF upload feature coming soon! Currently using sample questions.');
+      }
+
+      async startExam() {
+        // For now, generate sample questions. In production, use Claude API
+        this.examQuestions = this.generateQuestions(30);
+        this.examAnswers = new Array(this.examQuestions.length).fill(null);
+        this.renderExam();
+        this.goPage('exam');
+      }
+
+      generateQuestions(count) {
+        const questions = [
+          { q: 'What is the fundamental principle in this course?', opts: ['Option A', 'Option B', 'Option C', 'Option D'], correct: 0, exp: 'Option A is correct because...' },
+          { q: 'Which of the following is the best example?', opts: ['Example 1', 'Example 2', 'Example 3', 'Example 4'], correct: 1, exp: 'Example 2 demonstrates the concept properly.' },
+          { q: 'How do you apply this concept?', opts: ['Method A', 'Method B', 'Method C', 'Method D'], correct: 2, exp: 'Method C is the standard approach used in practice.' },
+          // Add more to reach 30
+        ];
+        // Repeat to get to 30
+        while (questions.length < count) {
+          questions.push({
+            q: `Question ${questions.length + 1}: What is your understanding?`,
+            opts: [`Option ${Math.floor(Math.random() * 4) + 1}`, `Option ${Math.floor(Math.random() * 4) + 1}`, `Option ${Math.floor(Math.random() * 4) + 1}`, `Option ${Math.floor(Math.random() * 4) + 1}`],
+            correct: Math.floor(Math.random() * 4),
+            exp: 'This is the correct explanation for this question.'
+          });
+        }
+        return questions.slice(0, count);
+      }
+
+      renderExam() {
+        let html = '';
+        this.examQuestions.forEach((q, i) => {
+          html += `<div class="question-box"><div class="question-num">Q${i + 1}/${this.examQuestions.length}</div><div class="question-text">${q.q}</div><div class="options">`;
+          q.opts.forEach((opt, j) => {
+            html += `<button class="option-btn" onclick="app.answerQuestion(${i}, ${j})">${String.fromCharCode(65 + j)}: ${opt}</button>`;
+          });
+          html += `</div></div>`;
+        });
+        html += `<button class="exam-btn" onclick="app.finishExam()">Submit Exam</button>`;
+        document.getElementById('examContent').innerHTML = html;
+      }
+
+      answerQuestion(qIndex, optIndex) {
+        this.examAnswers[qIndex] = optIndex;
+        // Update button styles
+        const questionDiv = document.querySelectorAll('.question-box')[qIndex];
+        const buttons = questionDiv.querySelectorAll('.option-btn');
+        buttons.forEach((btn, i) => {
+          btn.classList.remove('correct', 'incorrect');
+          if (i === optIndex) {
+            if (this.examQuestions[qIndex].correct === optIndex) {
+              btn.classList.add('correct');
+            } else {
+              btn.classList.add('incorrect');
+              buttons[this.examQuestions[qIndex].correct].classList.add('correct');
+            }
+          }
+        });
+      }
+
+      finishExam() {
+        let correct = 0;
+        this.examAnswers.forEach((ans, i) => {
+          if (ans === this.examQuestions[i].correct) correct++;
+        });
+        const percentage = Math.round((correct / this.examQuestions.length) * 100);
+        
+        let html = `<div class="score-box"><div class="score-num">${percentage}%</div><div class="score-label">${correct}/${this.examQuestions.length} correct</div></div>`;
+        
+        // Show explanations
+        this.examQuestions.forEach((q, i) => {
+          const answered = this.examAnswers[i];
+          const isCorrect = answered === q.correct;
+          html += `<div class="question-box"><div class="question-num">Q${i + 1}</div><div class="question-text">${q.q}</div><div style="font-size: 11px; margin: 8px 0; color: ${isCorrect ? '#05ffb2' : '#ff2e93'};">${isCorrect ? '✅ Correct' : '❌ Incorrect'}</div><div class="explanation">💡 ${q.exp}</div></div>`;
+        });
+        
+        html += `<button class="exam-btn" onclick="app.goPage('courseDetail')" style="margin-top: 16px;">Back to Course</button>`;
+        document.getElementById('resultsContent').innerHTML = html;
+        this.goPage('results');
+      }
+
+      goPage(page) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(page + 'Page').classList.add('active');
+        const btn = document.querySelector(`[onclick="app.goPage('${page}')"]`);
+        if (btn) btn.classList.add('active');
+      }
+
+      closeModal() {
+        document.getElementById('modal').classList.remove('show');
+      }
+
+      showPaymentModal() {
+        const html = `
+          <h2 class="modal-title">💳 Renew Access</h2>
+          <p style="font-size: 11px; color: #64748b; margin-bottom: 12px;">K10 per week</p>
+          <div style="background: #060913; padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+            <h4 style="color: #00f0ff; margin-bottom: 6px; font-size: 11px;">📱 MTN Mobile Money:</h4>
+            <p style="color: #64748b; font-size: 10px;">Send K10 to: <strong style="color: #05ffb2;">0964969767</strong></p>
+            <p style="color: #64748b; font-size: 10px; margin-top: 8px;">Then WhatsApp proof: <strong style="color: #05ffb2;">+260750109917</strong></p>
+            <p style="color: #94a3b8; font-size: 10px; margin-top: 8px; font-style: italic;">Unlocked within 1 hour!</p>
+          </div>
+          <button class="exam-btn" onclick="window.open('https://wa.me/260750109917?text=Hi%20I%20paid%20K10%20for%20Aura%20Academy%20access', '_blank')">📱 Contact to Unlock</button>
+        `;
+        document.getElementById('modalContent').innerHTML = html;
+        document.getElementById('modal').classList.add('show');
+      }
+
+      startCountdown() {
+        setInterval(() => {
+          const diff = new Date(this.profile.subscription_end) - Date.now();
+          const days = Math.floor(diff / (1000*60*60*24));
+          const hrs = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+          document.getElementById('countdown').textContent = days < 0 ? 'LOCKED' : `${days}d ${hrs}h`;
+        }, 1000);
+      }
+
+      async logout() {
+        await supabase.auth.signOut();
+        window.location.reload();
       }
     }
 

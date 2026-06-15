@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "AURA - Premium Study Companion for University Students",
   "main": "server.js",
-  "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"

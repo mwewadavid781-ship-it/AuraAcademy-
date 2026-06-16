@@ -148,12 +148,34 @@ app.post('/api/check-status', async (req, res) => {
   }
 });
 
-// ===== SERVE STATIC FILES =====
-app.use(express.static('public'));
+// ===== SERVE HTML INLINE =====
+const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA Study Companion</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; }
+        .login-box { background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; text-align: center; }
+        h1 { color: #667eea; margin-bottom: 20px; }
+        p { color: #6b7280; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1>📚 AURA</h1>
+        <p>Loading... Please wait</p>
+        <p id="message">Initializing student app...</p>
+    </div>
+    <script>
+        document.getElementById('message').innerText = 'App is loading. Refresh page if it takes too long.';
+    </script>
+</body>
+</html>`;
 
-// ===== FALLBACK - SERVE INDEX.HTML FOR SPA =====
 app.get('*', (req, res) => {
-  res.sendFile('public/index.html',{ root:__dirname})
+  res.send(htmlContent);
 });
 
 // ===== START =====

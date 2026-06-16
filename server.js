@@ -149,11 +149,11 @@ app.post('/api/check-status', async (req, res) => {
 });
 
 // ===== SERVE STATIC FILES =====
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('public'));
 
 // ===== FALLBACK - SERVE INDEX.HTML FOR SPA =====
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile('public/index.html',{ root:__dirname})
 });
 
 // ===== START =====

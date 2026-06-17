@@ -1,4 +1,3 @@
-cat > /mnt/user-data/outputs/server-working.js << 'WORKINGEOF'
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
@@ -86,5 +85,3 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => console.log('🚀 AURA running on port ' + PORT));
-WORKINGEOF
-cat /mnt/user-data/outputs/server-working.js

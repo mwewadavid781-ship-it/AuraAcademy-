@@ -3,939 +3,244 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AURA Study Companion</title>
+    <title>AURA - Study Companion</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #ffffff;
-            color: #1f2937;
-        }
-
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; }
         .hidden { display: none !important; }
-
-        /* LOGIN */
-        #loginScreen {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-        }
-
-        .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .login-box h1 {
-            font-size: 28px;
-            margin-bottom: 8px;
-            color: #667eea;
-        }
-
-        .login-box p {
-            color: #6b7280;
-            margin-bottom: 28px;
-            font-size: 14px;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: #6b7280;
-            margin-bottom: 6px;
-        }
-
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 14px;
-            font-family: inherit;
-        }
-
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .btn-primary {
-            width: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 14px;
-            margin-top: 8px;
-        }
-
-        .btn-primary:hover { transform: translateY(-2px); }
-
-        .toggle-auth {
-            text-align: center;
-            margin-top: 16px;
-            font-size: 13px;
-            color: #6b7280;
-        }
-
-        .toggle-auth a {
-            color: #667eea;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        /* PAYWALL */
-        #paywallScreen {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-        }
-
-        .paywall-box {
-            background: white;
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 450px;
-            text-align: center;
-        }
-
-        .paywall-box h2 {
-            font-size: 24px;
-            color: #ef4444;
-            margin-bottom: 12px;
-        }
-
-        .payment-info {
-            background: #f3f4f6;
-            padding: 20px;
-            border-radius: 12px;
-            margin: 20px 0;
-            text-align: left;
-        }
-
-        .payment-step {
-            background: white;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border-left: 4px solid #667eea;
-        }
-
-        .payment-step strong {
-            color: #667eea;
-            display: block;
-            margin-bottom: 4px;
-        }
-
-        .btn-unlock {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 14px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 16px;
-            font-size: 14px;
-        }
-
-        /* APP */
-        #appScreen {
-            display: none;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        #appScreen.active {
-            display: flex;
-        }
-
-        .app-header {
-            background: white;
-            padding: 16px 20px;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .app-header h1 {
-            font-size: 20px;
-            color: #667eea;
-        }
-
-        .countdown-timer {
-            font-size: 12px;
-            font-weight: 700;
-            background: #fef3c7;
-            color: #b45309;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
-        }
-
-        .logout-btn {
-            background: #f3f4f6;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            color: #6b7280;
-        }
-
-        .app-content {
-            flex: 1;
-            padding: 20px;
-            max-width: 100%;
-            overflow-y: auto;
-            padding-bottom: 100px;
-        }
-
-        .content-section {
-            display: none;
-        }
-
-        .content-section.active {
-            display: block;
-        }
-
-        .page-title {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 6px;
-            color: #1f2937;
-        }
-
-        .upload-zone {
-            border: 2px dashed #d1d5db;
-            border-radius: 12px;
-            padding: 40px 20px;
-            text-align: center;
-            cursor: pointer;
-            background: #f9fafb;
-            transition: all 0.2s;
-            margin-bottom: 24px;
-        }
-
-        .upload-zone:hover {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.05);
-        }
-
-        .upload-zone h3 {
-            font-size: 16px;
-            margin-bottom: 4px;
-            color: #1f2937;
-        }
-
-        .doc-card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-
-        .doc-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 12px;
-        }
-
-        .doc-name {
-            font-weight: 600;
-            color: #1f2937;
-            flex: 1;
-        }
-
-        .doc-status {
-            font-size: 12px;
-            background: #dcfce7;
-            color: #166534;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-weight: 600;
-        }
-
-        .question-box {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-        }
-
-        .question-text {
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 12px;
-            font-size: 14px;
-        }
-
-        .options {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .option-btn {
-            background: white;
-            border: 1px solid #d1d5db;
-            padding: 10px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            text-align: left;
-            font-size: 13px;
-            transition: all 0.2s;
-        }
-
-        .option-btn:hover {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.05);
-        }
-
-        .option-btn.correct {
-            background: #dcfce7;
-            border-color: #22c55e;
-            color: #166534;
-        }
-
-        .option-btn.incorrect {
-            background: #fee2e2;
-            border-color: #ef4444;
-            color: #991b1b;
-        }
-
-        .explanation {
-            background: #f0f9ff;
-            border-left: 4px solid #667eea;
-            padding: 12px;
-            border-radius: 4px;
-            margin-top: 8px;
-            font-size: 13px;
-            color: #1e40af;
-        }
-
-        .ceo-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            color: #6b7280;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-        }
-
-        .stat-number {
-            font-size: 32px;
-            font-weight: 700;
-            color: #667eea;
-        }
-
-        .user-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .user-item {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .user-info h4 {
-            font-size: 14px;
-            color: #1f2937;
-            margin-bottom: 2px;
-        }
-
-        .user-info p {
-            font-size: 12px;
-            color: #6b7280;
-        }
-
-        .unlock-btn {
-            background: #22c55e;
-            color: white;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            border-top: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-around;
-            padding: 12px 0;
-            z-index: 100;
-        }
-
-        .nav-btn {
-            background: none;
-            border: none;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            cursor: pointer;
-            gap: 4px;
-            font-size: 11px;
-            color: #9ca3af;
-            font-weight: 600;
-        }
-
-        .nav-btn.active {
-            color: #667eea;
-        }
-
-        .nav-emoji {
-            font-size: 20px;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .message {
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            font-size: 13px;
-        }
-
-        .message.success {
-            background: #dcfce7;
-            color: #166534;
-            border: 1px solid #86efac;
-        }
-
-        .message.error {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fca5a5;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #6b7280;
-        }
+        #loginScreen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #667eea, #764ba2); padding: 20px; }
+        .login-box { background: white; padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        h1 { color: #667eea; margin-bottom: 10px; font-size: 28px; }
+        p { color: #666; margin-bottom: 20px; }
+        input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        button { width: 100%; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; margin-top: 10px; }
+        button:hover { opacity: 0.9; }
+        a { color: #667eea; cursor: pointer; text-decoration: none; }
+        .toggle { text-align: center; margin-top: 15px; font-size: 13px; }
+        #appScreen { display: none; flex-direction: column; min-height: 100vh; }
+        #appScreen.active { display: flex !important; }
+        .app-header { background: white; padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+        h2 { font-size: 20px; color: #667eea; }
+        .countdown { background: #fef3c7; color: #b45309; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+        .logout-btn { background: #f3f4f6; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; color: #6b7280; }
+        .app-content { flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 80px; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .page-title { font-size: 24px; font-weight: 700; margin-bottom: 16px; color: #1f2937; }
+        .upload-zone { border: 2px dashed #d1d5db; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; background: #f9fafb; margin-bottom: 20px; }
+        input[type="file"] { display: none; }
+        .nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; padding: 12px 0; }
+        .nav-btn { background: none; border: none; display: flex; flex-direction: column; align-items: center; cursor: pointer; gap: 4px; font-size: 11px; color: #9ca3af; font-weight: 600; }
+        .nav-btn.active { color: #667eea; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .card { padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; }
+        .card-upload { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .card-notes { background: white; border: 1px solid #e5e7eb; }
     </style>
 </head>
 <body>
 
-<!-- LOGIN -->
 <div id="loginScreen">
     <div class="login-box">
         <h1>📚 AURA</h1>
         <p>Study Companion for University Students</p>
-
-        <div id="signInMode">
+        
+        <div id="signIn">
             <form onsubmit="app.login(event)">
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="loginEmail" required placeholder="you@university.edu">
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="loginPass" required placeholder="Password">
-                </div>
-                <button type="submit" class="btn-primary">Sign In</button>
+                <input type="email" id="email" placeholder="Email" required>
+                <input type="password" id="pass" placeholder="Password" required>
+                <button type="submit">Sign In</button>
             </form>
-            <div class="toggle-auth">
-                New student? <a onclick="app.toggleAuthMode()">Create account</a>
-            </div>
+            <div class="toggle">New? <a onclick="app.toggleAuth()">Create account</a></div>
         </div>
 
-        <div id="signUpMode" class="hidden">
+        <div id="signUp" class="hidden">
             <form onsubmit="app.register(event)">
-                <div class="form-group">
-                    <label>Name</label>
-                    <input type="text" id="regName" required placeholder="Your name">
-                </div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="regEmail" required placeholder="you@university.edu">
-                </div>
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" id="regPass" required placeholder="6+ characters">
-                </div>
-                <div class="form-group">
-                    <label>University</label>
-                    <select id="regUni" required>
-                        <option value="">Select your university</option>
-                        <option value="UNZA">UNZA - University of Zambia</option>
-                        <option value="CBU">CBU - Copperbelt University</option>
-                        <option value="Mulungushi">Mulungushi University</option>
-                        <option value="LAMU">LAMU - Lusaka Apex Medical</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn-primary">Create Account</button>
+                <input type="text" id="name" placeholder="Full Name" required>
+                <input type="email" id="regEmail" placeholder="Email" required>
+                <select id="uni" required>
+                    <option value="">Select University</option>
+                    <option>UNZA</option>
+                    <option>CBU</option>
+                    <option>Mulungushi</option>
+                    <option>LAMU</option>
+                </select>
+                <input type="password" id="regPass" placeholder="Password" required>
+                <button>Create Account</button>
             </form>
-            <div class="toggle-auth">
-                Have account? <a onclick="app.toggleAuthMode()">Sign in</a>
-            </div>
+            <div class="toggle"><a onclick="app.toggleAuth()">Back to Login</a></div>
         </div>
     </div>
 </div>
 
-<!-- PAYWALL -->
-<div id="paywallScreen" class="hidden">
-    <div class="paywall-box">
-        <h2>🔒 Access Locked</h2>
-        <p>Your 7-day free trial has ended</p>
-
-        <div class="payment-info">
-            <h3>How to unlock access:</h3>
-            
-            <div class="payment-step">
-                <strong>Step 1: Send K10 to Mobile Money</strong>
-                <p>Number: <strong>0964069767</strong></p>
-            </div>
-
-            <div class="payment-step">
-                <strong>Step 2: Send WhatsApp message</strong>
-                <p>Message to: <strong>+260750109917</strong></p>
-                <p style="font-size: 12px; margin-top: 6px;">Include your mobile number, account name, and the amount sent</p>
-            </div>
-        </div>
-
-        <button class="btn-unlock" onclick="app.openWhatsApp()">
-            💬 Send WhatsApp Message
-        </button>
-    </div>
-</div>
-
-<!-- APP -->
 <div id="appScreen">
     <div class="app-header">
-        <h1>📚 AURA Study</h1>
+        <h2>📚 AURA</h2>
         <div style="display: flex; gap: 12px; align-items: center;">
-            <div class="countdown-timer" id="countdownTimer">7d 0h 0m</div>
+            <div class="countdown" id="timer">7d 0h</div>
             <button class="logout-btn" onclick="app.logout()">Logout</button>
         </div>
     </div>
 
     <div class="app-content">
-        <!-- HOME -->
-        <div id="section-home" class="content-section active">
+        <div id="home" class="section active">
             <div class="page-title">Welcome! 👋</div>
-            <div style="color: #6b7280; margin-bottom: 24px;">Ready to study?</div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; text-align: center; cursor: pointer;" onclick="app.switchSection('upload')">
+            <p style="color: #6b7280; margin-bottom: 24px;">Ready to study?</p>
+            <div class="grid">
+                <div class="card card-upload" onclick="app.goTo('upload')">
                     <div style="font-size: 32px; margin-bottom: 8px;">📤</div>
                     <strong>Upload Notes</strong>
                 </div>
-                <div style="background: white; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; text-align: center; cursor: pointer;" onclick="app.switchSection('documents')">
+                <div class="card card-notes" onclick="app.goTo('docs')">
                     <div style="font-size: 32px; margin-bottom: 8px;">📚</div>
-                    <strong>Your Notes</strong>
+                    <strong>My Notes</strong>
                 </div>
             </div>
         </div>
 
-        <!-- UPLOAD -->
-        <div id="section-upload" class="content-section">
+        <div id="upload" class="section">
             <div class="page-title">Upload Your Material 📄</div>
-            <div style="color: #6b7280; margin-bottom: 16px;">PDF or photo of your course notes</div>
-
+            <p style="color: #6b7280; margin-bottom: 16px;">PDF or photo of your course notes</p>
             <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
                 <div style="font-size: 32px; margin-bottom: 8px;">📸 📄</div>
-                <h3>Tap to upload</h3>
+                <h3 style="color: #1f2937;">Tap to upload</h3>
                 <p style="font-size: 12px; color: #6b7280;">PNG, JPG, PDF • Max 10MB</p>
             </div>
-            <input type="file" id="fileInput" onchange="app.uploadFile(event)">
-
-            <div id="uploadMessage"></div>
-            <div id="uploadProgress" class="hidden">
-                <div class="loading">Processing PDF... generating 30+ questions...</div>
-            </div>
+            <input type="file" id="fileInput" onchange="app.upload(event)">
         </div>
 
-        <!-- DOCUMENTS -->
-        <div id="section-documents" class="content-section">
+        <div id="docs" class="section">
             <div class="page-title">Your Study Materials 📚</div>
-            <div id="documentsList"></div>
-        </div>
-
-        <!-- CEO DASHBOARD -->
-        <div id="section-ceo" class="content-section hidden">
-            <div class="page-title">Admin Dashboard 👑</div>
-
-            <div class="ceo-stats">
-                <div class="stat-card">
-                    <div class="stat-label">Total Students</div>
-                    <div class="stat-number" id="totalStudents">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Locked</div>
-                    <div class="stat-number" id="lockedStudents">0</div>
-                </div>
-            </div>
-
-            <h3 style="font-size: 16px; margin-bottom: 12px; font-weight: 700;">Student Management</h3>
-            <div class="user-list" id="studentList"></div>
+            <div id="docsList"></div>
         </div>
     </div>
 
-    <nav class="bottom-nav">
-        <button class="nav-btn active" onclick="app.switchSection('home')"><span class="nav-emoji">🏠</span>Home</button>
-        <button class="nav-btn" onclick="app.switchSection('upload')"><span class="nav-emoji">📤</span>Upload</button>
-        <button class="nav-btn" onclick="app.switchSection('documents')"><span class="nav-emoji">📚</span>Notes</button>
-        <button class="nav-btn nav-ceo hidden" id="navCeo" onclick="app.switchSection('ceo')"><span class="nav-emoji">👑</span>Admin</button>
+    <nav class="nav">
+        <button class="nav-btn active" onclick="app.goTo('home')"><span style="font-size: 20px;">🏠</span>Home</button>
+        <button class="nav-btn" onclick="app.goTo('upload')"><span style="font-size: 20px;">📤</span>Upload</button>
+        <button class="nav-btn" onclick="app.goTo('docs')"><span style="font-size: 20px;">📚</span>Notes</button>
     </nav>
 </div>
 
 <script>
-    class AuraApp {
-        constructor() {
-            this.API_URL = 'http://localhost:3000'; // Change to your Render URL after deployment
-            this.user = null;
-            this.isCEO = false;
-            this.countdownInterval = null;
-        }
+class App {
+    constructor() {
+        this.user = null;
+        this.API = window.location.origin;
+    }
 
-        toggleAuthMode() {
-            document.getElementById('signInMode').classList.toggle('hidden');
-            document.getElementById('signUpMode').classList.toggle('hidden');
-        }
+    toggleAuth() {
+        document.getElementById('signIn').classList.toggle('hidden');
+        document.getElementById('signUp').classList.toggle('hidden');
+    }
 
-        async register(e) {
-            e.preventDefault();
-            const name = document.getElementById('regName').value;
-            const email = document.getElementById('regEmail').value;
-            const uni = document.getElementById('regUni').value;
-
-            try {
-                const res = await fetch(`${this.API_URL}/auth/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, university: uni })
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    this.user = { email, name, university: uni };
-                    this.isCEO = email === 'mwewadavid781@gmail.com';
-                    localStorage.setItem('aura_user', JSON.stringify(this.user));
-                    this.showApp();
-                }
-            } catch (error) {
-                alert('❌ Registration failed: ' + error.message);
-            }
-        }
-
-        async login(e) {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-
-            try {
-                const res = await fetch(`${this.API_URL}/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    this.user = { email, name: data.student.name, university: data.student.university };
-                    this.isCEO = email === 'mwewadavid781@gmail.com';
-                    localStorage.setItem('aura_user', JSON.stringify(this.user));
-                    
-                    if (data.isLocked) {
-                        this.showPaywall();
-                    } else {
-                        this.showApp();
-                    }
-                }
-            } catch (error) {
-                alert('❌ Login failed. Try registering first.');
-            }
-        }
-
-        showApp() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('paywallScreen').classList.add('hidden');
-            document.getElementById('appScreen').classList.add('active');
-
-            if (this.isCEO) {
-                document.getElementById('navCeo').classList.remove('hidden');
-                this.loadCEODashboard();
-            }
-
-            this.startCountdown();
-        }
-
-        showPaywall() {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('appScreen').classList.remove('active');
-            document.getElementById('paywallScreen').classList.remove('hidden');
-        }
-
-        async uploadFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            document.getElementById('uploadProgress').classList.remove('hidden');
-
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('studentEmail', this.user.email);
-
-            try {
-                const res = await fetch(`${this.API_URL}/api/upload`, {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    document.getElementById('uploadMessage').innerHTML = `
-                        <div class="message success">✅ File uploaded! ${data.questionsGenerated} questions generated.</div>
-                    `;
-                    setTimeout(() => this.switchSection('documents'), 1500);
-                } else {
-                    document.getElementById('uploadMessage').innerHTML = `
-                        <div class="message error">❌ Upload failed</div>
-                    `;
-                }
-            } catch (error) {
-                document.getElementById('uploadMessage').innerHTML = `
-                    <div class="message error">❌ Error: ${error.message}</div>
-                `;
-            } finally {
-                document.getElementById('uploadProgress').classList.add('hidden');
-                document.getElementById('fileInput').value = '';
-            }
-        }
-
-        switchSection(section) {
-            document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-
-            document.getElementById('section-' + section).classList.add('active');
-            event.target.closest('.nav-btn').classList.add('active');
-
-            if (section === 'documents') this.loadDocuments();
-            if (section === 'ceo') this.loadCEODashboard();
-        }
-
-        async loadDocuments() {
-            try {
-                const res = await fetch(`${this.API_URL}/api/documents/${this.user.email}`);
-                const data = await res.json();
-
-                const list = document.getElementById('documentsList');
-                if (data.documents.length === 0) {
-                    list.innerHTML = '<p style="text-align: center; color: #9ca3af;">No documents yet. Upload your first note!</p>';
-                } else {
-                    list.innerHTML = data.documents.map(doc => `
-                        <div class="doc-card">
-                            <div class="doc-header">
-                                <span class="doc-name">📄 ${doc.file_name}</span>
-                                <span class="doc-status">${doc.questions_count} Q's</span>
-                            </div>
-                            <p style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">${doc.summary.substring(0, 100)}...</p>
-                            <button class="btn-primary" onclick="app.viewQuestions('${doc.id}')" style="background: #667eea; padding: 8px;">Practice Questions</button>
-                        </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error(error);
-            }
-        }
-
-        async viewQuestions(docId) {
-            try {
-                const res = await fetch(`${this.API_URL}/api/questions/${docId}`);
-                const data = await res.json();
-
-                let html = '<div style="padding: 20px 0;">';
-                data.questions.forEach((q, i) => {
-                    html += `
-                        <div class="question-box">
-                            <div style="font-size: 12px; color: #667eea; font-weight: 700; margin-bottom: 8px;">Q${i + 1}</div>
-                            <div class="question-text">${q.question}</div>
-                            <div class="options">
-                                ${q.options.map((opt, j) => `
-                                    <button class="option-btn" onclick="app.checkAnswer(this, ${j === q.correct_answer})">${String.fromCharCode(65 + j)}: ${opt}</button>
-                                `).join('')}
-                            </div>
-                            <div class="explanation" style="display: none;">
-                                <strong>💡 Explanation:</strong> ${q.explanation}
-                            </div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-
-                document.getElementById('section-documents').innerHTML = `
-                    <button class="btn-primary" onclick="location.reload()" style="margin-bottom: 16px;">← Back</button>
-                    ${html}
-                `;
-            } catch (error) {
-                alert('Error loading questions');
-            }
-        }
-
-        checkAnswer(btn, isCorrect) {
-            const box = btn.closest('.question-box');
-            const buttons = box.querySelectorAll('.option-btn');
-            const explanation = box.querySelector('.explanation');
-
-            buttons.forEach(b => {
-                b.disabled = true;
-                b.style.opacity = '0.6';
-            });
-
-            if (isCorrect) {
-                btn.classList.add('correct');
-                explanation.style.display = 'block';
-            } else {
-                btn.classList.add('incorrect');
-                buttons.forEach((b, i) => {
-                    if (b.textContent.includes('Explanation')) return;
-                });
-                explanation.style.display = 'block';
-            }
-        }
-
-        async loadCEODashboard() {
-            try {
-                const res = await fetch(`${this.API_URL}/ceo/students`);
-                const data = await res.json();
-
-                document.getElementById('totalStudents').textContent = data.total;
-                document.getElementById('lockedStudents').textContent = data.locked;
-
-                const list = document.getElementById('studentList');
-                list.innerHTML = data.students.map(student => `
-                    <div class="user-item">
-                        <div class="user-info">
-                            <h4>${student.name}</h4>
-                            <p>${student.email} • ${student.university}</p>
-                        </div>
-                        <button class="unlock-btn" onclick="app.unlockStudent(${student.id})">
-                            ${student.is_locked ? '🔓 Unlock' : '✓ Active'}
-                        </button>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error(error);
-            }
-        }
-
-        async unlockStudent(id) {
-            try {
-                const res = await fetch(`${this.API_URL}/ceo/unlock/${id}`, { method: 'POST' });
-                const data = await res.json();
-                if (data.success) {
-                    alert('✅ Student unlocked!');
-                    this.loadCEODashboard();
-                }
-            } catch (error) {
-                alert('Unlock failed');
-            }
-        }
-
-        startCountdown() {
-            if (this.countdownInterval) clearInterval(this.countdownInterval);
-
-            this.countdownInterval = setInterval(() => {
-                const now = Date.now();
-                const stored = localStorage.getItem('aura_trial');
-                if (!stored) {
-                    const trialEnd = Date.now() + (7 * 24 * 60 * 60 * 1000);
-                    localStorage.setItem('aura_trial', trialEnd);
-                }
-                const trialEnd = parseInt(localStorage.getItem('aura_trial'));
-                const diff = trialEnd - now;
-
-                if (diff <= 0) {
-                    clearInterval(this.countdownInterval);
-                    this.showPaywall();
-                } else {
-                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                    document.getElementById('countdownTimer').textContent = `${days}d ${hours}h ${mins}m`;
-                }
-            }, 1000);
-        }
-
-        openWhatsApp() {
-            const message = `Hi! I just sent K10 for AURA Study access. My mobile number is: [YOUR_NUMBER], Account name: [YOUR_NAME]`;
-            window.open(`https://wa.me/260750109917?text=${encodeURIComponent(message)}`, '_blank');
-        }
-
-        logout() {
-            localStorage.removeItem('aura_user');
-            location.reload();
+    async register(e) {
+        e.preventDefault();
+        const name = document.getElementById('name').value;
+        const email = document.getElementById('regEmail').value;
+        const uni = document.getElementById('uni').value;
+        
+        const res = await fetch(this.API + '/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, university: uni })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            this.user = { email, name, university: uni };
+            localStorage.setItem('aura_user', JSON.stringify(this.user));
+            localStorage.setItem('aura_trial', Date.now() + 7 * 24 * 60 * 60 * 1000);
+            this.showApp();
+        } else {
+            alert('Error: ' + data.error);
         }
     }
 
-    const app = new AuraApp();
-
-    // Check if user is already logged in
-    const saved = localStorage.getItem('aura_user');
-    if (saved) {
-        app.user = JSON.parse(saved);
-        app.isCEO = app.user.email === 'mwewadavid781@gmail.com';
-        app.showApp();
+    async login(e) {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        
+        const res = await fetch(this.API + '/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            this.user = { email, name: data.student.name, university: data.student.university };
+            localStorage.setItem('aura_user', JSON.stringify(this.user));
+            localStorage.setItem('aura_trial', Date.now() + 7 * 24 * 60 * 60 * 1000);
+            this.showApp();
+        } else {
+            alert('Login failed');
+        }
     }
+
+    showApp() {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('appScreen').classList.add('active');
+        this.startTimer();
+    }
+
+    goTo(section) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(section).classList.add('active');
+        event.target.closest('.nav-btn')?.classList.add('active');
+    }
+
+    async upload(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const form = new FormData();
+        form.append('file', file);
+        form.append('studentEmail', this.user.email);
+        
+        const res = await fetch(this.API + '/api/upload', {
+            method: 'POST',
+            body: form
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            alert('✅ File uploaded! 30 questions generated.');
+            this.goTo('docs');
+        } else {
+            alert('Upload failed: ' + data.error);
+        }
+    }
+
+    logout() {
+        localStorage.removeItem('aura_user');
+        location.reload();
+    }
+
+    startTimer() {
+        setInterval(() => {
+            const now = Date.now();
+            const end = parseInt(localStorage.getItem('aura_trial') || Date.now() + 7 * 24 * 60 * 60 * 1000);
+            const diff = end - now;
+            
+            if (diff <= 0) return;
+            
+            const days = Math.floor(diff / 86400000);
+            const hours = Math.floor((diff % 86400000) / 3600000);
+            document.getElementById('timer').textContent = days + 'd ' + hours + 'h';
+        }, 1000);
+    }
+}
+
+const app = new App();
+
+const saved = localStorage.getItem('aura_user');
+if (saved) {
+    app.user = JSON.parse(saved);
+    app.showApp();
+}
 </script>
 
 </body>

@@ -1,6 +1,6 @@
-const path = require('path');
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 const Groq = require('groq-sdk').default;
 const pdfParse = require('pdf-parse');
@@ -9,14 +9,16 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-// ===== AUTH =====
+// AUTH
 app.post('/auth/register', async (req, res) => {
   try {
     const { name, email, university, courseId, year } = req.body;
@@ -26,10 +28,7 @@ app.post('/auth/register', async (req, res) => {
       is_locked: false
     }]).select();
     if (error) throw error;
-    
-    // Create student stats
     await supabase.from('student_stats').insert([{ student_id: data[0].id }]);
-    
     res.json({ success: true, student: data[0] });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -47,7 +46,7 @@ app.post('/auth/login', async (req, res) => {
   }
 });
 
-// ===== COURSES =====
+// COURSES
 app.get('/api/courses', async (req, res) => {
   try {
     const { data, error } = await supabase.from('courses').select('*');
@@ -58,7 +57,7 @@ app.get('/api/courses', async (req, res) => {
   }
 });
 
-// ===== STUDY GROUPS =====
+// GROUPS
 app.get('/api/groups/:courseId/:year', async (req, res) => {
   try {
     const { courseId, year } = req.params;
@@ -105,7 +104,7 @@ app.post('/api/groups/:groupId/join', async (req, res) => {
   }
 });
 
-// ===== MESSAGING =====
+// MESSAGING
 app.post('/api/messages', async (req, res) => {
   try {
     const { groupId, studentId, messageText, messageType, mediaUrl, voiceUrl, pdfUrl } = req.body;
@@ -130,10 +129,7 @@ app.get('/api/messages/:groupId', async (req, res) => {
     const { groupId } = req.params;
     const { data, error } = await supabase
       .from('messages')
-      .select(`
-        *,
-        students:student_id(name, email)
-      `)
+      .select('*')
       .eq('group_id', groupId)
       .order('created_at', { ascending: true });
     if (error) throw error;
@@ -143,7 +139,7 @@ app.get('/api/messages/:groupId', async (req, res) => {
   }
 });
 
-// ===== UPLOAD & AI QUESTIONS =====
+// UPLOAD & AI
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
     const { studentEmail } = req.body;
@@ -208,12 +204,11 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// ===== GAMIFICATION =====
+// GAMIFICATION
 app.post('/api/answer', async (req, res) => {
   try {
     const { studentId, questionId, answerGiven, timeTaken } = req.body;
     
-    // Get correct answer
     const { data: qData } = await supabase
       .from('questions')
       .select('correct_answer')
@@ -222,7 +217,6 @@ app.post('/api/answer', async (req, res) => {
     
     const isCorrect = qData.correct_answer === answerGiven;
     
-    // Log answer
     await supabase.from('answer_history').insert([{
       student_id: studentId,
       question_id: questionId,
@@ -232,10 +226,8 @@ app.post('/api/answer', async (req, res) => {
     }]);
     
     if (isCorrect) {
-      // Award points based on speed
       const points = timeTaken < 30 ? 50 : timeTaken < 60 ? 35 : 20;
       
-      // Update stats
       const { data: stats } = await supabase
         .from('student_stats')
         .select('aura_points, correct_answers, total_questions_answered')
@@ -253,20 +245,7 @@ app.post('/api/answer', async (req, res) => {
         level: newLevel
       }).eq('student_id', studentId);
       
-      // Check for badges
-      const badges = [];
-      if (newCorrect === 1) badges.push(1); // First Step
-      if (newCorrect === 10) badges.push(3); // Perfect Score
-      if (newPoints >= 1000) badges.push(5); // Solo Leveler
-      
-      for (let badgeId of badges) {
-        await supabase.from('student_badges').insert([{
-          student_id: studentId,
-          badge_id: badgeId
-        }]).catch(() => {});
-      }
-      
-      res.json({ success: true, correct: true, points, newLevel, badges });
+      res.json({ success: true, correct: true, points, newLevel });
     } else {
       res.json({ success: true, correct: false, points: 0 });
     }
@@ -275,14 +254,12 @@ app.post('/api/answer', async (req, res) => {
   }
 });
 
+// STATS
 app.get('/api/stats/:studentId', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('student_stats')
-      .select(`
-        *,
-        badges:student_badges(badge_id, badges(name, icon_emoji))
-      `)
+      .select('*')
       .eq('student_id', req.params.studentId)
       .single();
     if (error) throw error;
@@ -292,8 +269,9 @@ app.get('/api/stats/:studentId', async (req, res) => {
   }
 });
 
-// ===== SERVE APP =====
-const path = require('path');
-app.use(express.static(path.join(__dirname, 'public')));
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.listen(PORT, () => console.log('🚀 AURA BACKEND on ' + PORT));
+// SERVE APP
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.listen(PORT, () => console.log('🚀 AURA on ' + PORT));

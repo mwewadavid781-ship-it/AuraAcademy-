@@ -1,3 +1,4 @@
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
@@ -292,6 +293,7 @@ app.get('/api/stats/:studentId', async (req, res) => {
 });
 
 // ===== SERVE APP =====
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')).catch(() => res.send('AURA API Running')));
-
+const path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.listen(PORT, () => console.log('🚀 AURA BACKEND on ' + PORT));

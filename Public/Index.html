@@ -3,362 +3,361 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AURA - Study Companion</title>
+    <title>AURA - Starfield</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #1f2937; }
-        .hidden { display: none !important; }
-        
-        /* LOGIN SCREEN */
-        #loginScreen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .login-box { background: white; padding: 50px; border-radius: 25px; width: 100%; max-width: 450px; box-shadow: 0 30px 60px rgba(0,0,0,0.3); }
-        .logo { display: flex; align-items: center; gap: 10px; font-size: 32px; font-weight: 800; color: #667eea; margin-bottom: 12px; }
-        .tagline { color: #6b7280; font-size: 14px; margin-bottom: 32px; }
-        input, select { width: 100%; padding: 14px; margin: 12px 0; border: 1.5px solid #e5e7eb; border-radius: 12px; font-size: 15px; font-family: inherit; transition: all 0.2s; }
-        input:focus, select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 4px rgba(102,126,234,0.1); }
-        .btn-primary { width: 100%; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 14px; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 15px; margin-top: 12px; transition: all 0.2s; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(102,126,234,0.4); }
-        a { color: #667eea; cursor: pointer; text-decoration: none; font-weight: 600; font-size: 13px; }
-        .toggle { text-align: center; margin-top: 24px; }
-        
-        /* APP SCREEN */
-        #appScreen { display: none; flex-direction: column; min-height: 100vh; background: #f9fafb; }
-        #appScreen.active { display: flex !important; }
-        
-        .top-bar { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        .top-bar h1 { font-size: 22px; }
-        .stats-bar { display: flex; gap: 12px; align-items: center; }
-        .stat-badge { background: rgba(255,255,255,0.2); padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; backdrop-filter: blur(10px); }
-        .stat-badge strong { display: block; font-size: 16px; color: #fbbf24; }
-        
-        .app-content { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 100px; }
-        .section { display: none; }
-        .section.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        
-        .page-title { font-size: 28px; font-weight: 800; margin-bottom: 8px; color: #1f2937; }
-        .page-subtitle { color: #6b7280; font-size: 14px; margin-bottom: 24px; }
-        
-        /* GROUPS */
-        .groups-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-        .group-card { background: white; padding: 20px; border-radius: 16px; cursor: pointer; transition: all 0.2s; border: 2px solid #e5e7eb; }
-        .group-card:hover { border-color: #667eea; transform: translateY(-4px); box-shadow: 0 10px 25px rgba(102,126,234,0.15); }
-        .group-icon { font-size: 32px; margin-bottom: 8px; }
-        .group-name { font-weight: 700; color: #1f2937; margin-bottom: 4px; }
-        .group-meta { font-size: 13px; color: #6b7280; }
-        
-        /* CHAT */
-        #chatScreen { display: flex; flex-direction: column; }
-        .chat-header { background: white; padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
-        .chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-        .message { padding: 12px 16px; border-radius: 12px; max-width: 80%; word-wrap: break-word; }
-        .message.own { background: linear-gradient(135deg, #667eea, #764ba2); color: white; align-self: flex-end; }
-        .message.other { background: white; border: 1px solid #e5e7eb; align-self: flex-start; }
-        .message-time { font-size: 11px; opacity: 0.7; margin-top: 4px; }
-        .chat-input { background: white; padding: 16px 20px; border-top: 1px solid #e5e7eb; display: flex; gap: 12px; }
-        .chat-input input { flex: 1; padding: 12px; border: 1.5px solid #e5e7eb; border-radius: 10px; }
-        .chat-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; }
-        
-        /* STUDY */
-        .question-card { background: white; padding: 24px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .question-text { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #1f2937; }
-        .option { padding: 12px; margin: 8px 0; border: 2px solid #e5e7eb; border-radius: 10px; cursor: pointer; transition: all 0.2s; }
-        .option:hover { border-color: #667eea; background: rgba(102,126,234,0.05); }
-        .option.selected { border-color: #667eea; background: rgba(102,126,234,0.1); }
-        .option.correct { border-color: #10b981; background: rgba(16,185,129,0.1); }
-        .option.wrong { border-color: #ef4444; background: rgba(239,68,68,0.1); }
-        
-        /* BADGES */
-        .badges-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 16px; margin-top: 20px; }
-        .badge { background: white; padding: 16px; border-radius: 12px; text-align: center; border: 2px solid #e5e7eb; }
-        .badge-icon { font-size: 40px; margin-bottom: 8px; }
-        .badge-name { font-size: 12px; font-weight: 700; color: #1f2937; }
-        .badge.locked { opacity: 0.4; }
-        
-        /* BOTTOM NAV */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-around; padding: 12px 0; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); }
-        .nav-btn { background: none; border: none; display: flex; flex-direction: column; align-items: center; cursor: pointer; gap: 4px; font-size: 11px; color: #9ca3af; font-weight: 600; transition: all 0.2s; }
-        .nav-btn.active { color: #667eea; }
-        .nav-emoji { font-size: 22px; }
-        
-        /* UPLOAD */
-        .upload-zone { border: 3px dashed #667eea; border-radius: 16px; padding: 60px 20px; text-align: center; cursor: pointer; background: rgba(102,126,234,0.05); margin-bottom: 20px; transition: all 0.2s; }
-        .upload-zone:hover { background: rgba(102,126,234,0.1); }
-        .upload-zone-icon { font-size: 48px; margin-bottom: 12px; }
-        input[type="file"] { display: none; }
+        html, body { margin: 0; padding: 0; background: #000; height: 100%; overflow: hidden; }
+        canvas#scene { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; }
+        #scroll-host { height: 300vh; }
+        #scroll-hint { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: #aef6cf; font-size: 12px; opacity: 0.6; pointer-events: none; }
     </style>
 </head>
 <body>
+    <canvas id="scene"></canvas>
+    <div id="scroll-host"></div>
+    <div id="scroll-hint">SCROLL ↓</div>
 
-<!-- LOGIN SCREEN -->
-<div id="loginScreen">
-    <div class="login-box">
-        <div class="logo">📚 AURA</div>
-        <p class="tagline">Study Companion for University Students</p>
-        
-        <div id="signIn">
-            <form onsubmit="app.login(event)">
-                <input type="email" id="email" placeholder="Email" required>
-                <input type="password" id="pass" placeholder="Password" required>
-                <button type="submit" class="btn-primary">Sign In</button>
-            </form>
-            <div class="toggle">New here? <a onclick="app.toggleAuth()">Create account</a></div>
-        </div>
-        
-        <div id="signUp" class="hidden">
-            <form onsubmit="app.register(event)">
-                <input type="text" id="name" placeholder="Full Name" required>
-                <input type="email" id="regEmail" placeholder="Email" required>
-                <select id="courseId" required>
-                    <option value="">Select Course</option>
-                </select>
-                <select id="year" required>
-                    <option value="">Select Year</option>
-                    <option value="1">1st Year</option>
-                    <option value="2">2nd Year</option>
-                    <option value="3">3rd Year</option>
-                    <option value="4">4th Year</option>
-                </select>
-                <input type="password" id="regPass" placeholder="Password" required>
-                <button type="submit" class="btn-primary">Create Account</button>
-            </form>
-            <div class="toggle"><a onclick="app.toggleAuth()">Back to Login</a></div>
-        </div>
-    </div>
-</div>
-
-<!-- APP SCREEN -->
-<div id="appScreen">
-    <div class="top-bar">
-        <h1>📚 AURA</h1>
-        <div class="stats-bar">
-            <div class="stat-badge"><span id="levelDisplay">L1</span></div>
-            <div class="stat-badge"><span id="pointsDisplay">0 pts</span></div>
-            <button class="btn-primary" style="padding: 8px 16px; font-size: 12px; margin: 0;" onclick="app.logout()">Logout</button>
-        </div>
-    </div>
-    
-    <div class="app-content">
-        <!-- HOME -->
-        <div id="home" class="section active">
-            <div class="page-title">Welcome! 👋</div>
-            <p class="page-subtitle">Ready to study and level up?</p>
-            
-            <div style="background: white; padding: 20px; border-radius: 16px; margin-bottom: 24px;">
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center;">
-                    <div>
-                        <div style="font-size: 28px; font-weight: 700; color: #667eea;" id="homeLevel">1</div>
-                        <div style="font-size: 12px; color: #6b7280;">Level</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 28px; font-weight: 700; color: #10b981;" id="homePoints">0</div>
-                        <div style="font-size: 12px; color: #6b7280;">Points</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 28px; font-weight: 700; color: #f59e0b;" id="homeBadges">0</div>
-                        <div style="font-size: 12px; color: #6b7280;">Badges</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- GROUPS -->
-        <div id="groups" class="section">
-            <div class="page-title">Study Groups 👥</div>
-            <p class="page-subtitle">Join your course cohort</p>
-            <div class="groups-grid" id="groupsList"></div>
-        </div>
-        
-        <!-- CHAT -->
-        <div id="chatScreen" class="section">
-            <div class="chat-header">
-                <h3 id="chatTitle">Group Chat</h3>
-                <a onclick="app.goTo('groups')">← Back</a>
-            </div>
-            <div class="chat-messages" id="chatMessages"></div>
-            <div class="chat-input">
-                <input type="text" id="messageInput" placeholder="Type a message...">
-                <button class="chat-btn" onclick="app.sendMessage()">Send</button>
-            </div>
-        </div>
-        
-        <!-- STUDY -->
-        <div id="study" class="section">
-            <div class="page-title">Study Now 📖</div>
-            <p class="page-subtitle">Answer questions and earn points</p>
-            <div id="studyContent"></div>
-        </div>
-        
-        <!-- BADGES -->
-        <div id="badges" class="section">
-            <div class="page-title">Achievements 🏆</div>
-            <p class="page-subtitle">Your badges and progress</p>
-            <div class="badges-grid" id="badgesList"></div>
-        </div>
-    </div>
-    
-    <nav class="bottom-nav">
-        <button class="nav-btn active" onclick="app.goTo('home')"><span class="nav-emoji">🏠</span>Home</button>
-        <button class="nav-btn" onclick="app.goTo('groups')"><span class="nav-emoji">👥</span>Groups</button>
-        <button class="nav-btn" onclick="app.goTo('study')"><span class="nav-emoji">📖</span>Study</button>
-        <button class="nav-btn" onclick="app.goTo('badges')"><span class="nav-emoji">🏆</span>Badges</button>
-    </nav>
-</div>
-
-<script>
-class AuraApp {
-    constructor() {
-        this.user = null;
-        this.API = window.location.origin;
-        this.courses = [];
-        this.groups = [];
-        this.currentGroup = null;
-        this.stats = { aura_points: 0, level: 1, badges: [] };
-    }
-    
-    async init() {
-        const saved = localStorage.getItem('aura_user');
-        if (saved) {
-            this.user = JSON.parse(saved);
-            await this.loadCourses();
-            await this.loadStats();
-            this.showApp();
-        } else {
-            await this.loadCourses();
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.143.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.143.0/examples/jsm/"
         }
     }
-    
-    async loadCourses() {
-        const res = await fetch(this.API + '/api/courses');
-        const data = await res.json();
-        this.courses = data.courses || [];
-        const select = document.getElementById('courseId');
-        this.courses.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.id;
-            opt.textContent = c.name;
-            select.appendChild(opt);
-        });
-    }
-    
-    toggleAuth() {
-        document.getElementById('signIn').classList.toggle('hidden');
-        document.getElementById('signUp').classList.toggle('hidden');
-    }
-    
-    async register(e) {
-        e.preventDefault();
-        const name = document.getElementById('name').value;
-        const email = document.getElementById('regEmail').value;
-        const courseId = parseInt(document.getElementById('courseId').value);
-        const year = parseInt(document.getElementById('year').value);
-        const res = await fetch(this.API + '/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, courseId, year, university: 'Zambia' })
-        });
-        const data = await res.json();
-        if (data.success) {
-            this.user = { email, name, course_id: courseId, year };
-            localStorage.setItem('aura_user', JSON.stringify(this.user));
-            await this.loadStats();
-            this.showApp();
-        } else alert('❌ ' + data.error);
-    }
-    
-    async login(e) {
-        e.preventDefault();
-        const email = document.getElementById('email').value;
-        const res = await fetch(this.API + '/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-        });
-        const data = await res.json();
-        if (data.success) {
-            this.user = data.student;
-            localStorage.setItem('aura_user', JSON.stringify(this.user));
-            await this.loadStats();
-            this.showApp();
-        } else alert('❌ Login failed');
-    }
-    
-    showApp() {
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('appScreen').classList.add('active');
-        this.loadGroups();
-    }
-    
-    async loadGroups() {
-        const res = await fetch(this.API + `/api/groups/${this.user.course_id}/${this.user.year}`);
-        const data = await res.json();
-        this.groups = data.groups || [];
-        const html = this.groups.map(g => `
-            <div class="group-card" onclick="app.enterGroup(${g.id}, '${g.group_name}')">
-                <div class="group-icon">👥</div>
-                <div class="group-name">${g.group_name}</div>
-                <div class="group-meta">${g.member_count || 0} members</div>
-            </div>
-        `).join('');
-        document.getElementById('groupsList').innerHTML = html;
-    }
-    
-    async enterGroup(groupId, name) {
-        this.currentGroup = groupId;
-        document.getElementById('chatTitle').textContent = name;
-        const res = await fetch(this.API + `/api/messages/${groupId}`);
-        const data = await res.json();
-        const msgs = data.messages || [];
-        document.getElementById('chatMessages').innerHTML = msgs.map(m => `
-            <div class="message ${m.student_id === this.user.id ? 'own' : 'other'}">
-                ${m.message_text}
-                <div class="message-time">${new Date(m.created_at).toLocaleTimeString()}</div>
-            </div>
-        `).join('');
-        this.goTo('chatScreen');
-    }
-    
-    async sendMessage() {
-        const text = document.getElementById('messageInput').value;
-        if (!text) return;
-        const res = await fetch(this.API + '/api/messages', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ groupId: this.currentGroup, studentId: this.user.id, messageText: text })
-        });
-        if ((await res.json()).success) {
-            document.getElementById('messageInput').value = '';
-            this.enterGroup(this.currentGroup, 'Group Chat');
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        import { GammaCorrectionShader } from 'three/addons/shaders/GammaCorrectionShader.js';
+        import { CopyShader } from 'three/addons/shaders/CopyShader.js';
+
+        const CONFIG = {
+            bgColor: '#0a0a24',
+            flameColor: '#aee9ff',
+            flameColor2: '#c79bff',
+            flameAmt: 0.2,
+            colorA: '#aef6cf',
+            colorB: '#5fe6a0',
+            colorC: '#eafff2',
+            opacity: 2,
+            pointSize: 50,
+            brightness: 1.85,
+            drift: 2.35,
+            twinkle: 1,
+            spin: 0.03,
+            repelRadius: 5,
+            repelStrength: 0.35,
+            scrollPush: 8,
+            scrollDrift: 6,
+            scrollSpin: 0.1,
+            parallax: 0.6
+        };
+
+        const LAYERS = {
+            NONE: 0,
+            TORUS_SCENE: 1,
+            BLOOM_SCENE: 2,
+            ENTIRE_SCENE: 3
+        };
+
+        let canvas = document.getElementById('scene');
+        let renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.VSMShadowMap;
+
+        let scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+        scene.fog = new THREE.Fog(0x000000, 0, 15);
+
+        let camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 80);
+        camera.position.set(0, 0, 5);
+        camera.layers.enable(LAYERS.TORUS_SCENE);
+        camera.layers.enable(LAYERS.BLOOM_SCENE);
+        camera.layers.enable(LAYERS.ENTIRE_SCENE);
+        scene.add(camera);
+
+        function hexToVec3(hex) {
+            const n = parseInt(hex.slice(1), 16);
+            return new THREE.Vector3(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
         }
-    }
-    
-    async loadStats() {
-        const res = await fetch(this.API + `/api/stats/${this.user.id}`);
-        const data = await res.json();
-        this.stats = data;
-        document.getElementById('levelDisplay').textContent = 'L' + data.level;
-        document.getElementById('pointsDisplay').textContent = data.aura_points + ' pts';
-        document.getElementById('homeLevel').textContent = data.level;
-        document.getElementById('homePoints').textContent = data.aura_points;
-        document.getElementById('homeBadges').textContent = (data.badges || []).length;
-    }
-    
-    goTo(section) {
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(section)?.classList.add('active');
-        event.target.closest('.nav-btn')?.classList.add('active');
-    }
-    
-    logout() {
-        localStorage.removeItem('aura_user');
-        location.reload();
-    }
-}
 
-const app = new AuraApp();
-app.init();
-</script>
+        let renderScene = new RenderPass(scene, camera);
+        let torusComposer = new EffectComposer(renderer);
+        torusComposer.renderToScreen = false;
+        torusComposer.addPass(renderScene);
+        torusComposer.addPass(new ShaderPass(GammaCorrectionShader));
+        torusComposer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.22, 0.2, 0));
+        torusComposer.addPass(new ShaderPass(CopyShader));
 
+        let bloomComposer = new EffectComposer(renderer);
+        bloomComposer.renderToScreen = false;
+        bloomComposer.addPass(renderScene);
+        bloomComposer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.4, 0.55, 0));
+        bloomComposer.addPass(new ShaderPass(GammaCorrectionShader));
+
+        const FinalPass = {
+            uniforms: {
+                iTime: { value: 0 },
+                tDiffuse: { value: null },
+                torusTexture: { value: null },
+                bloomTexture: { value: null },
+                haloTexture: { value: null },
+                uBg: { value: hexToVec3('#0a0a24') },
+                uFlameA: { value: hexToVec3('#aee9ff') },
+                uFlameB: { value: hexToVec3('#c79bff') },
+                uFlameAmt: { value: 0.2 }
+            },
+            vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position, 1.0); }`,
+            fragmentShader: `
+                uniform float iTime; 
+                uniform sampler2D tDiffuse; 
+                uniform sampler2D bloomTexture; 
+                uniform sampler2D torusTexture; 
+                uniform sampler2D haloTexture;
+                uniform vec3 uBg; 
+                uniform vec3 uFlameA; 
+                uniform vec3 uFlameB; 
+                uniform float uFlameAmt;
+                varying vec2 vUv;
+                vec3 warp3d(vec3 pos, float t){
+                    float curv=.8,a=1.9,b=0.7;
+                    pos*=2.;
+                    pos.x+=curv*sin(t+a*pos.y)+t*b;
+                    pos.y+=curv*cos(t+a*pos.x);
+                    pos.y+=curv*sin(t+a*pos.z)+t*b;
+                    pos.z+=curv*cos(t+a*pos.y);
+                    pos.z+=curv*sin(t+a*pos.x)+t*b;
+                    pos.x+=curv*cos(t+a*pos.z);
+                    return 0.5+0.5*cos(pos.xyz+vec3(1,2,4));
+                }
+                void main(){
+                    vec2 uv = 2.*vUv - 1.;
+                    vec3 w = pow(warp3d(vec3(uv.x, sin(uv.y), uv.y), iTime*1.5), vec3(1.5));
+                    vec3 flame = 1.5*uFlameA*w.x;
+                    flame*=w.y;
+                    flame += uFlameB*w.z;
+                    flame *= smoothstep(0.25, 1., abs(uv.y));
+                    float md = smoothstep(-0.7, 1., -uv.y*uv.x);
+                    flame *= md*md;
+                    vec3 bg = uBg * (1.0 - 0.4 * length(uv));
+                    vec3 halo = texture2D(haloTexture, vUv).xyz;
+                    gl_FragColor = vec4(bg + flame*uFlameAmt + texture2D(bloomTexture, vUv).xyz + texture2D(torusTexture, vUv).xyz + texture2D(tDiffuse, vUv).xyz + halo, 1.);
+                }
+            `
+        };
+
+        let finalPass = new ShaderPass(FinalPass);
+        finalPass.uniforms.bloomTexture.value = bloomComposer.renderTarget1.texture;
+        finalPass.uniforms.torusTexture.value = torusComposer.renderTarget1.texture;
+
+        let finalComposer = new EffectComposer(renderer);
+        finalComposer.addPass(renderScene);
+        finalComposer.addPass(finalPass);
+
+        const vertexShader = `
+            uniform float uTime; 
+            uniform float uSize; 
+            uniform float uDrift; 
+            uniform float uDepth; 
+            uniform float uTwinkle;
+            uniform vec3 uCursor; 
+            uniform float uRepelRadius; 
+            uniform float uRepelStrength; 
+            uniform float uActivity;
+            uniform vec3 uColorA; 
+            uniform vec3 uColorB; 
+            uniform vec3 uColorC;
+            attribute float aScale; 
+            attribute float aPhase; 
+            attribute float aPalette; 
+            attribute float aBright;
+            varying vec3 vColor; 
+            varying float vTwinkle;
+            void main() {
+                vec3 pos = position;
+                pos.z = mod(pos.z + uDrift + (uDepth * 0.5), uDepth) - (uDepth * 0.5);
+                float tw = sin(uTime * 1.6 + aPhase * 6.2831);
+                vTwinkle = (1.0 - uTwinkle) + uTwinkle * (0.55 + 0.45 * tw);
+                vec4 modelPosition = modelMatrix * vec4(pos, 1.0);
+                vec3 toParticle = modelPosition.xyz - uCursor;
+                float dist = length(toParticle);
+                float falloff = smoothstep(uRepelRadius, 0.0, dist);
+                modelPosition.xyz += normalize(toParticle + vec3(0.0001)) * falloff * uRepelStrength * uActivity;
+                vec4 viewPosition = viewMatrix * modelPosition;
+                gl_Position = projectionMatrix * viewPosition;
+                gl_PointSize = uSize * aScale;
+                gl_PointSize *= (1.0 / -viewPosition.z);
+                vec3 base = aPalette < 0.5 ? uColorA : (aPalette < 1.5 ? uColorB : uColorC);
+                vColor = base * aBright;
+            }
+        `;
+
+        const fragmentShader = `
+            uniform float uOpacity; 
+            uniform float uBrightness;
+            varying vec3 vColor; 
+            varying float vTwinkle;
+            void main() {
+                vec2 uv = gl_PointCoord - 0.5;
+                float d = length(uv);
+                if (d > 0.5) discard;
+                float strength = pow(1.0 - d * 2.0, 4.0);
+                vec3 color = mix(vec3(0.0), vColor, strength);
+                gl_FragColor = vec4(color * uBrightness, strength * uOpacity * vTwinkle);
+            }
+        `;
+
+        const count = 4200;
+        const depth = 30;
+        let positions = new Float32Array(count * 3);
+        let palette = new Float32Array(count);
+        let bright = new Float32Array(count);
+        let scales = new Float32Array(count);
+        let phases = new Float32Array(count);
+
+        for (let i = 0; i < count; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 24;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 16;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 30;
+            palette[i] = Math.floor(Math.random() * 3);
+            bright[i] = 0.7 + Math.random() * 0.6;
+            scales[i] = 0.5 + Math.pow(Math.random(), 1.4) * 2.5;
+            phases[i] = Math.random();
+        }
+
+        let geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('aScale', new THREE.BufferAttribute(scales, 1));
+        geometry.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
+        geometry.setAttribute('aPalette', new THREE.BufferAttribute(palette, 1));
+        geometry.setAttribute('aBright', new THREE.BufferAttribute(bright, 1));
+
+        let material = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uSize: { value: CONFIG.pointSize },
+                uOpacity: { value: 0 },
+                uDrift: { value: 0 },
+                uDepth: { value: depth },
+                uTwinkle: { value: CONFIG.twinkle },
+                uCursor: { value: new THREE.Vector3() },
+                uRepelRadius: { value: CONFIG.repelRadius },
+                uRepelStrength: { value: CONFIG.repelStrength },
+                uActivity: { value: 0 },
+                uColorA: { value: hexToVec3(CONFIG.colorA) },
+                uColorB: { value: hexToVec3(CONFIG.colorB) },
+                uColorC: { value: hexToVec3(CONFIG.colorC) },
+                uBrightness: { value: CONFIG.brightness }
+            },
+            vertexShader,
+            fragmentShader,
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        });
+
+        let points = new THREE.Points(geometry, material);
+        points.layers.enable(LAYERS.ENTIRE_SCENE);
+        
+        let group = new THREE.Group();
+        group.add(points);
+        scene.add(group);
+
+        let POINTER = {
+            world: new THREE.Vector3(),
+            activity: 0,
+            ndc: new THREE.Vector2(),
+            lastMove: Date.now()
+        };
+
+        let scrollCurrent = 0, scrollSmooth = 0, scrollTarget = 0;
+        let mouseSmooth = new THREE.Vector2();
+        let t0 = performance.now() / 1000;
+        let appearStart = Date.now();
+
+        document.addEventListener('mousemove', (e) => {
+            POINTER.ndc.x = (e.clientX / window.innerWidth) * 2 - 1;
+            POINTER.ndc.y = -((e.clientY / window.innerHeight) * 2 - 1);
+            POINTER.lastMove = Date.now();
+        });
+
+        document.addEventListener('mouseout', () => {});
+
+        function updatePointer() {
+            let idle = (Date.now() - POINTER.lastMove) / 1000;
+            let want = idle < 3 ? 1 : 0;
+            POINTER.activity += (want - POINTER.activity) * 0.06;
+
+            let ndc = POINTER.ndc;
+            let dir = new THREE.Vector3(ndc.x, ndc.y, -1).unproject(camera).sub(camera.position).normalize();
+            if (Math.abs(dir.z) > 1e-4) {
+                let t = -camera.position.z / dir.z;
+                if (t > 0 && isFinite(t)) {
+                    let target = camera.position.clone().add(dir.multiplyScalar(t));
+                    POINTER.world.lerp(target, 0.12);
+                }
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            scrollTarget = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight);
+            scrollSmooth = THREE.MathUtils.lerp(scrollSmooth, scrollTarget, 0.10);
+            scrollCurrent = THREE.MathUtils.lerp(scrollCurrent, scrollSmooth, 0.06);
+
+            mouseSmooth.lerp(POINTER.ndc, 0.06);
+
+            let t = performance.now() / 1000;
+            let dt = Math.min(0.05, t - t0);
+            t0 = t;
+
+            material.uniforms.uTime.value = t;
+            material.uniforms.uDrift.value += dt * (CONFIG.drift + scrollCurrent * CONFIG.scrollDrift);
+            material.uniforms.uCursor.value = POINTER.world;
+            material.uniforms.uActivity.value = POINTER.activity;
+
+            camera.position.set(mouseSmooth.x * 0.6, mouseSmooth.y * 0.6, 5 - scrollCurrent * 8);
+            camera.lookAt(mouseSmooth.x * 0.6, mouseSmooth.y * 0.6, -10);
+
+            let elapsed = Date.now() - appearStart;
+            let fade = Math.max(0, Math.min(1, (elapsed - 300) / 1400));
+            material.uniforms.uOpacity.value = fade * 2;
+
+            group.rotation.z += dt * (CONFIG.spin + scrollCurrent * CONFIG.scrollSpin);
+
+            updatePointer();
+
+            finalPass.uniforms.iTime.value = t;
+
+            camera.layers.set(LAYERS.TORUS_SCENE);
+            torusComposer.render();
+            camera.layers.set(LAYERS.BLOOM_SCENE);
+            bloomComposer.render();
+            camera.layers.set(LAYERS.ENTIRE_SCENE);
+            finalComposer.render();
+        }
+
+        function onWindowResize() {
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            torusComposer.setPixelRatio(window.devicePixelRatio);
+            torusComposer.setSize(window.innerWidth, window.innerHeight);
+            bloomComposer.setPixelRatio(window.devicePixelRatio);
+            bloomComposer.setSize(window.innerWidth, window.innerHeight);
+            finalComposer.setPixelRatio(window.devicePixelRatio);
+            finalComposer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        window.addEventListener('resize', onWindowResize);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        animate();
+    </script>
 </body>
 </html>

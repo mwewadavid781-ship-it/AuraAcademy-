@@ -1,25 +1,19 @@
 {
-  "name": "aura-study",
+  "name": "aura-academy",
   "version": "1.0.0",
-  "description": "AURA - Premium Study Companion for University Students",
+  "description": "Premium AI Study Platform for Zambian University Students",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node server.js"
   },
+  "keywords": ["study", "ai", "zambia", "education"],
+  "author": "Tekaru",
+  "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
     "cors": "^2.8.5",
-    "@supabase/supabase-js": "^2.39.0",
-    "groq-sdk": "^0.3.0",
-    "pdf-parse": "^1.1.1",
-    "multer": "^1.4.5-lts.1",
-    "dotenv": "^16.3.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.1"
-  },
-  "keywords": ["study", "education", "aura", "zambia"],
-  "author": "Tekaru",
-  "license": "MIT"
+    "@supabase/supabase-js": "^2.38.0",
+    "dotenv": "^16.0.3",
+    "multer": "^1.4.5-lts.1"
+  }
 }

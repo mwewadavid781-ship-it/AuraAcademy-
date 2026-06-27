@@ -1,20 +1,34 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const { createClient } = require('@supabase/supabase-js');
-const Groq = require('groq-sdk').default;
 const multer = require('multer');
-require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+let supabase = null;
+let groq = null;
+
+try {
+  const { createClient } = require('@supabase/supabase-js');
+  supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+} catch (e) {
+  console.error('Supabase init error:', e.message);
+}
+
+try {
+  const Groq = require('groq-sdk');
+  groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+} catch (e) {
+  console.error('Groq init error:', e.message);
+}
+
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
+// ===== AUTH =====
 app.post('/auth/register', async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'DB not ready' });
   try {
     const { name, email, year } = req.body;
     const trialEnd = new Date(Date.now() + 7*24*60*60*1000);
@@ -31,6 +45,7 @@ app.post('/auth/register', async (req, res) => {
 });
 
 app.post('/auth/login', async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'DB not ready' });
   try {
     const { email } = req.body;
     const { data, error } = await supabase.from('students').select('*').eq('email', email).single();
@@ -50,6 +65,7 @@ app.post('/auth/login', async (req, res) => {
 });
 
 app.post('/api/syllabus/create', async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'DB not ready' });
   try {
     const { studentId, courseName, courseCode, semester, topics, examDate } = req.body;
     const topicsArray = Array.isArray(topics) ? topics : (typeof topics === 'string' ? topics.split(',').map(t => t.trim()) : []);
@@ -65,6 +81,7 @@ app.post('/api/syllabus/create', async (req, res) => {
 });
 
 app.get('/api/syllabuses/:studentId', async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'DB not ready' });
   try {
     const { data, error } = await supabase.from('syllabuses').select('*').eq('student_id', req.params.studentId);
     if (error) throw error;
@@ -75,6 +92,7 @@ app.get('/api/syllabuses/:studentId', async (req, res) => {
 });
 
 app.post('/api/syllabus/mark-topic', async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'DB not ready' });
   try {
     const { syllabusId, topicName } = req.body;
     const { data: syllabus, error: fetchError } = await supabase.from('syllabuses').select('*').eq('id', syllabusId).single();
@@ -98,6 +116,8 @@ app.post('/api/syllabus/mark-topic', async (req, res) => {
 });
 
 app.post('/api/upload', upload.single('file'), async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'DB not ready' });
+  if (!groq) return res.status(500).json({ error: 'Groq not ready' });
   try {
     const { studentId, syllabusId } = req.body;
     const { data: student } = await supabase.from('students').select('trial_end_date, is_paid').eq('id', studentId).single();
@@ -111,12 +131,14 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       const pdfParse = require('pdf-parse');
       const pdf = await pdfParse(req.file.buffer);
       text = pdf.text.replace(/\n\n+/g, '\n').substring(0, 5000);
-    } catch (e) {}
+    } catch (e) {
+      console.log('PDF parse fallback');
+    }
     const simplified = await groq.chat.completions.create({
       model: 'mixtral-8x7b-32768',
       messages: [{ role: 'user', content: `Simplify into 5 KEY POINTS:\n${text}` }],
       max_tokens: 500
-    }).then(r => r.choices[0]?.message?.content || 'Generated');
+    }).then(r => r.choices[0]?.message?.content || 'Generated').catch(e => 'AI summary unavailable');
     const { data, error } = await supabase.from('documents').insert([{
       student_id: studentId, syllabus_id: syllabusId, file_name: req.file.originalname,
       summary: simplified, extracted_text: text, created_at: new Date().toISOString()
@@ -129,6 +151,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 });
 
 app.get('/api/subscription/:studentId', async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'DB not ready' });
   try {
     const { data, error } = await supabase.from('students').select('trial_end_date, is_paid').eq('id', req.params.studentId).single();
     if (error) throw error;
@@ -143,9 +166,10 @@ app.get('/api/subscription/:studentId', async (req, res) => {
 });
 
 app.post('/api/payment/initiate', async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'DB not ready' });
   try {
     const { studentId, msisdn } = req.body;
-    await supabase.from('students').update({ mtn_msisdn: msisdn, payment_reference: \`AURA-\${Date.now()}\` }).eq('id', studentId);
+    await supabase.from('students').update({ mtn_msisdn: msisdn, payment_reference: `AURA-${Date.now()}` }).eq('id', studentId);
     res.json({ success: true });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -153,6 +177,7 @@ app.post('/api/payment/initiate', async (req, res) => {
 });
 
 app.post('/api/payment/confirm', async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'DB not ready' });
   try {
     const { studentId } = req.body;
     await supabase.from('students').update({
@@ -166,6 +191,7 @@ app.post('/api/payment/confirm', async (req, res) => {
 });
 
 app.get('/api/stats/:studentId', async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: 'DB not ready' });
   try {
     const { data, error } = await supabase.from('student_stats').select('*').eq('student_id', req.params.studentId).single();
     if (error) throw error;
@@ -175,15 +201,19 @@ app.get('/api/stats/:studentId', async (req, res) => {
   }
 });
 
+// ===== HEALTH CHECK =====
+app.get('/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
+
+// ===== SERVE APP =====
 app.get('*', (req, res) => {
-  res.send(\`<!DOCTYPE html>
+  res.send(`<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width"><title>AURA</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:system-ui,sans-serif;background:#0a0a24;color:#f1f5f9;overflow-x:hidden}
 #starfield{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1}
 #app{position:fixed;top:0;left:0;width:100%;height:100%;z-index:10;overflow-y:auto}
-input,select,textarea{width:100%;padding:12px;margin:8px 0;border:1.5px solid rgba(74,242,161,0.3);border-radius:10px;font-size:14px;background:rgba(10,10,36,0.6);color:#f1f5f9;font-family:inherit}
+input,select,textarea{width:100%;padding:12px;margin:8px 0;border:1.5px solid rgba(74,242,161,0.3);border-radius:10px;font-size:14px;background:rgba(10,10,36,0.6);color:#f1f5f9}
 input:focus{outline:none;border-color:#4AF2A1;box-shadow:0 0 15px rgba(74,242,161,0.5)}
 .btn{background:linear-gradient(135deg,#00FFCC,#4AF2A1);color:#0a0a24;padding:12px 24px;border:none;border-radius:10px;cursor:pointer;font-weight:700;font-size:14px;box-shadow:0 0 15px rgba(74,242,161,0.4);transition:all 0.3s}
 .btn:hover{transform:translateY(-2px);box-shadow:0 0 25px rgba(74,242,161,0.6)}
@@ -215,7 +245,6 @@ input:focus{outline:none;border-color:#4AF2A1;box-shadow:0 0 15px rgba(74,242,16
 .nav-btn{background:none;border:none;color:#64748b;font-size:11px;cursor:pointer;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px}
 .nav-btn.active{color:#4AF2A1}
 .landing-section{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 20px;text-align:center}
-.landing-hero{max-width:800px;margin-bottom:60px}
 .landing-title{font-size:52px;font-weight:800;margin-bottom:20px;text-shadow:0 0 30px rgba(74,242,161,0.5)}
 .landing-subtitle{font-size:16px;color:#cbd5e1;margin-bottom:40px}
 .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;max-width:900px;margin-bottom:40px}
@@ -237,33 +266,15 @@ input:focus{outline:none;border-color:#4AF2A1;box-shadow:0 0 15px rgba(74,242,16
 
 <div id="landingSection" class="section active">
 <div class="landing-section">
-<div class="landing-hero">
 <div style="font-size:60px;margin-bottom:16px">📚</div>
 <div class="landing-title">AURA</div>
 <div class="landing-subtitle">Premium Study Platform for Zambian University Students</div>
-</div>
 
 <div class="features-grid">
-<div class="feature-card">
-<div class="feature-icon">📚</div>
-<div class="feature-title">Upload & Simplify</div>
-<div class="feature-text">AI simplifies your PDFs</div>
-</div>
-<div class="feature-card">
-<div class="feature-icon">📊</div>
-<div class="feature-title">Track Progress</div>
-<div class="feature-text">See completion %</div>
-</div>
-<div class="feature-card">
-<div class="feature-icon">🏆</div>
-<div class="feature-title">Earn Points</div>
-<div class="feature-text">Gamified learning</div>
-</div>
-<div class="feature-card">
-<div class="feature-icon">💬</div>
-<div class="feature-title">Study Groups</div>
-<div class="feature-text">Connect with peers</div>
-</div>
+<div class="feature-card"><div class="feature-icon">📚</div><div class="feature-title">Upload & Simplify</div><div class="feature-text">AI simplifies your PDFs</div></div>
+<div class="feature-card"><div class="feature-icon">📊</div><div class="feature-title">Track Progress</div><div class="feature-text">See completion %</div></div>
+<div class="feature-card"><div class="feature-icon">🏆</div><div class="feature-title">Earn Points</div><div class="feature-text">Gamified learning</div></div>
+<div class="feature-card"><div class="feature-icon">💬</div><div class="feature-title">Study Groups</div><div class="feature-text">Connect with peers</div></div>
 </div>
 
 <div class="pricing-box">
@@ -278,7 +289,7 @@ input:focus{outline:none;border-color:#4AF2A1;box-shadow:0 0 15px rgba(74,242,16
 </div>
 </div>
 
-<div id="loginSection" class="section">
+<div id="login" class="section">
 <div class="auth-section">
 <div class="auth-box">
 <div class="auth-title">Welcome Back</div>
@@ -288,17 +299,13 @@ input:focus{outline:none;border-color:#4AF2A1;box-shadow:0 0 15px rgba(74,242,16
 <input type="password" id="loginPass" placeholder="Password" required>
 <button class="btn" style="width:100%;margin-top:12px">Sign In →</button>
 </form>
-<div class="toggle-link">
-New here? <a onclick="app.goTo('signup')">Create account</a>
-</div>
-<div style="text-align:center;margin-top:12px">
-<a onclick="app.goTo('landingSection')" style="color:#4AF2A1;cursor:pointer;font-size:12px">← Back</a>
-</div>
+<div class="toggle-link">New here? <a onclick="app.goTo('signup')">Create account</a></div>
+<div style="text-align:center;margin-top:12px"><a onclick="app.goTo('landingSection')" style="color:#4AF2A1;cursor:pointer;font-size:12px">← Back</a></div>
 </div>
 </div>
 </div>
 
-<div id="signupSection" class="section">
+<div id="signup" class="section">
 <div class="auth-section">
 <div class="auth-box">
 <div class="auth-title">Join AURA</div>
@@ -310,12 +317,8 @@ New here? <a onclick="app.goTo('signup')">Create account</a>
 <input type="password" id="signupPass" placeholder="Password" required>
 <button class="btn" style="width:100%;margin-top:12px">Create Account →</button>
 </form>
-<div class="toggle-link">
-Have account? <a onclick="app.goTo('login')">Sign in</a>
-</div>
-<div style="text-align:center;margin-top:12px">
-<a onclick="app.goTo('landingSection')" style="color:#4AF2A1;cursor:pointer;font-size:12px">← Back</a>
-</div>
+<div class="toggle-link">Have account? <a onclick="app.goTo('login')">Sign in</a></div>
+<div style="text-align:center;margin-top:12px"><a onclick="app.goTo('landingSection')" style="color:#4AF2A1;cursor:pointer;font-size:12px">← Back</a></div>
 </div>
 </div>
 </div>
@@ -328,7 +331,6 @@ Have account? <a onclick="app.goTo('login')">Sign in</a>
 </div>
 
 <div class="content">
-
 <div id="syllabus" class="section active">
 <div class="page-title">📚 Create Course</div>
 <p class="subtitle">Set up your first course</p>
@@ -405,47 +407,36 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x0a0a24);
-
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.z = 5;
-
 const geometry = new THREE.BufferGeometry();
 const count = 4200;
-let positions = new Float32Array(count * 3);
-let colors = new Float32Array(count * 3);
-
+const positions = new Float32Array(count * 3);
+const colors = new Float32Array(count * 3);
 const colorA = new THREE.Color(0xaef6cf);
 const colorB = new THREE.Color(0x5fe6a0);
 const colorC = new THREE.Color(0xeafff2);
-
 for (let i = 0; i < count; i++) {
   positions[i * 3] = (Math.random() - 0.5) * 24;
   positions[i * 3 + 1] = (Math.random() - 0.5) * 16;
   positions[i * 3 + 2] = (Math.random() - 0.5) * 30;
-  let palette = Math.floor(Math.random() * 3);
-  let color = palette === 0 ? colorA : palette === 1 ? colorB : colorC;
+  let color = [colorA, colorB, colorC][Math.floor(Math.random() * 3)];
   let bright = 0.7 + Math.random() * 0.6;
   colors[i * 3] = color.r * bright;
   colors[i * 3 + 1] = color.g * bright;
   colors[i * 3 + 2] = color.b * bright;
 }
-
 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
 const material = new THREE.PointsMaterial({ size: 0.15, vertexColors: true, transparent: true, sizeAttenuation: true });
 const stars = new THREE.Points(geometry, material);
 scene.add(stars);
-
-let mouseX = 0;
-let mouseY = 0;
-
+let mouseX = 0, mouseY = 0;
 document.addEventListener('mousemove', (e) => {
   mouseX = (e.clientX / window.innerWidth) * 2 - 1;
   mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
 });
-
 function animate() {
   requestAnimationFrame(animate);
   stars.rotation.z += 0.00005;
@@ -454,9 +445,7 @@ function animate() {
   camera.lookAt(0, 0, 0);
   renderer.render(scene, camera);
 }
-
 animate();
-
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -514,7 +503,7 @@ class App {
         localStorage.setItem('aura_user', JSON.stringify(this.user));
         await this.showDashboard();
       } else {
-        alert('Login failed');
+        alert('Login failed: ' + (res.error || 'Unknown error'));
       }
     } catch (e) {
       alert('Error: ' + e.message);
@@ -538,7 +527,7 @@ class App {
         localStorage.setItem('aura_user', JSON.stringify(this.user));
         await this.showDashboard();
       } else {
-        alert('Signup failed');
+        alert('Signup failed: ' + (res.error || 'Unknown error'));
       }
     } catch (e) {
       alert('Error: ' + e.message);
@@ -551,7 +540,6 @@ class App {
     const badge = document.getElementById('countdownBadge');
     if (sub.daysLeft <= 0) {
       badge.textContent = '❌ Trial Expired';
-      badge.style.background = 'rgba(255,107,107,0.2)';
       badge.style.color = '#ff6b6b';
     } else {
       badge.textContent = \`⏳ \${sub.daysLeft} days free\`;
@@ -692,4 +680,9 @@ app.init();
 </body></html>\`);
 });
 
-app.listen(PORT, () => console.log('🚀 AURA FINAL WORKING on ' + PORT));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(\`✅ AURA server running on port \${PORT}\`);
+  console.log(\`   Health: \${process.env.SUPABASE_URL ? '✅ Supabase' : '⚠️  No Supabase'}\`);
+  console.log(\`   Groq: \${process.env.GROQ_API_KEY ? '✅ Ready' : '⚠️  No Groq key'}\`);
+});

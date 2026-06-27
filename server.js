@@ -304,7 +304,6 @@ input:focus{outline:none;border-color:#4AF2A1;box-shadow:0 0 15px rgba(74,242,16
 .stat-label{font-size:12px;color:#cbd5e1}
 .course-box{background:rgba(74,242,161,0.08);border:1.5px solid rgba(74,242,161,0.2);border-radius:12px;padding:16px;margin-bottom:12px}
 .course-title{font-weight:700;color:#4AF2A1;margin-bottom:4px}
-.course-code{font-size:12px;color:#cbd5e1}
 .progress-bar{background:rgba(74,242,161,0.1);border-radius:8px;height:10px;margin:8px 0;overflow:hidden}
 .progress-fill{background:linear-gradient(90deg,#00FFCC,#4AF2A1);height:100%;transition:width 0.3s}
 .topics-list{font-size:12px;color:#cbd5e1;margin-top:12px}
@@ -318,32 +317,134 @@ input:focus{outline:none;border-color:#4AF2A1;box-shadow:0 0 15px rgba(74,242,16
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,36,0.7);border-top:1.5px solid rgba(74,242,161,0.2);display:flex;justify-content:space-around;padding:10px 0;z-index:100}
 .nav-btn{background:none;border:none;color:#64748b;font-size:11px;cursor:pointer;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px}
 .nav-btn.active{color:#4AF2A1}
-.login-section{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px}
-.login-box{background:rgba(74,242,161,0.08);border:1.5px solid rgba(74,242,161,0.2);border-radius:12px;padding:40px;max-width:420px;width:100%}
+.landing-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:40px 20px;text-align:center}
+.landing-hero{max-width:800px;margin-bottom:60px}
+.landing-title{font-size:48px;font-weight:800;margin-bottom:20px;text-shadow:0 0 30px rgba(74,242,161,0.4)}
+.landing-subtitle{font-size:16px;color:#cbd5e1;margin-bottom:40px}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;max-width:1000px;margin-bottom:60px}
+.feature-card{background:rgba(74,242,161,0.08);border:1.5px solid rgba(74,242,161,0.2);border-radius:12px;padding:24px;backdrop-filter:blur(8px)}
+.feature-icon{font-size:40px;margin-bottom:12px}
+.feature-title{font-weight:700;color:#4AF2A1;margin-bottom:8px}
+.feature-text{font-size:13px;color:#cbd5e1}
+.pricing-box{background:rgba(74,242,161,0.08);border:1.5px solid rgba(74,242,161,0.2);border-radius:12px;padding:30px;max-width:500px;margin-bottom:40px;backdrop-filter:blur(8px)}
+.cta-buttons{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.btn-large{padding:16px 40px;font-size:16px;width:auto;min-width:160px}
+.auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.auth-box{background:rgba(74,242,161,0.08);border:1.5px solid rgba(74,242,161,0.2);border-radius:12px;padding:40px;max-width:420px;width:100%;backdrop-filter:blur(12px)}
+.auth-title{font-size:24px;font-weight:800;color:#f1f5f9;margin-bottom:8px;text-shadow:0 0 15px rgba(74,242,161,0.3)}
+.auth-subtitle{font-size:13px;color:#cbd5e1;margin-bottom:24px}
+.toggle-link{text-align:center;margin-top:16px;font-size:13px}
+.toggle-link a{color:#4AF2A1;cursor:pointer;text-decoration:none}
 </style></head><body>
 <canvas id="starfield"></canvas>
 <div id="app">
-<div class="login-section hidden" id="loginSection">
-<div class="login-box">
-<div style="font-size:40px;margin-bottom:12px">📚</div>
-<div style="font-size:24px;font-weight:800;color:#f1f5f9;margin-bottom:8px;text-shadow:0 0 15px rgba(74,242,161,0.3)">AURA</div>
-<p style="color:#cbd5e1;margin-bottom:20px">Premium Study Platform</p>
+
+<div id="landingSection" class="section active">
+<div class="landing-screen">
+<div class="landing-hero">
+<div style="font-size:60px;margin-bottom:16px">📚</div>
+<div class="landing-title">AURA</div>
+<div class="landing-subtitle">Premium Study Platform for Zambian University Students</div>
+</div>
+
+<div class="features-grid">
+<div class="feature-card">
+<div class="feature-icon">👥</div>
+<div class="feature-title">Study Groups</div>
+<div class="feature-text">Connect with classmates in your course</div>
+</div>
+<div class="feature-card">
+<div class="feature-icon">📚</div>
+<div class="feature-title">Upload & Simplify</div>
+<div class="feature-text">AI simplifies your PDFs instantly</div>
+</div>
+<div class="feature-card">
+<div class="feature-icon">📊</div>
+<div class="feature-title">Track Progress</div>
+<div class="feature-text">See your course completion %</div>
+</div>
+<div class="feature-card">
+<div class="feature-icon">🏆</div>
+<div class="feature-title">Gamification</div>
+<div class="feature-text">Earn points and build streaks</div>
+</div>
+<div class="feature-card">
+<div class="feature-icon">💬</div>
+<div class="feature-title">Group Chat</div>
+<div class="feature-text">Real-time messaging with peers</div>
+</div>
+<div class="feature-card">
+<div class="feature-icon">💰</div>
+<div class="feature-title">Affordable</div>
+<div class="feature-text">Only K10/week after free trial</div>
+</div>
+</div>
+
+<div class="pricing-box">
+<div style="font-size:28px;font-weight:800;color:#4AF2A1;margin-bottom:16px">💎 Simple Pricing</div>
+<div style="text-align:left;color:#cbd5e1">
+<div style="margin:12px 0"><strong>7 Days Free</strong></div>
+<div style="margin:12px 0"><strong>K10/week</strong> after trial</div>
+<div style="margin:12px 0"><strong>MTN Mobile Money</strong> payment</div>
+</div>
+</div>
+
+<div class="cta-buttons">
+<button class="btn btn-large" onclick="app.goTo('login')">SIGN IN</button>
+<button class="btn btn-large" onclick="app.goTo('signup')">CREATE ACCOUNT</button>
+</div>
+</div>
+</div>
+
+<div id="loginSection" class="section">
+<div class="auth-screen">
+<div class="auth-box">
+<div class="auth-title">Welcome Back</div>
+<div class="auth-subtitle">Sign in to continue</div>
 <form onsubmit="return app.handleLogin(event)">
 <input type="email" id="loginEmail" placeholder="Email" required>
 <input type="password" id="loginPass" placeholder="Password" required>
-<button class="btn" style="width:100%;margin-top:12px">Sign In</button>
+<button class="btn" style="width:100%;margin-top:12px">Sign In →</button>
 </form>
-<div style="text-align:center;margin-top:12px;font-size:13px">
-<a style="color:#4AF2A1;cursor:pointer" onclick="app.showSignup()">Create Account</a>
+<div class="toggle-link">
+New here? <a onclick="app.goTo('signup')">Create account</a>
+</div>
+<div style="text-align:center;margin-top:12px">
+<a onclick="app.goTo('landing')" style="color:#4AF2A1;cursor:pointer;font-size:12px">← Back</a>
 </div>
 </div>
 </div>
-<div id="mainApp" style="display:none">
+</div>
+
+<div id="signupSection" class="section">
+<div class="auth-screen">
+<div class="auth-box">
+<div class="auth-title">Join AURA</div>
+<div class="auth-subtitle">Start your free trial</div>
+<form onsubmit="return app.handleSignup(event)">
+<input type="text" id="signupName" placeholder="Full Name" required>
+<input type="email" id="signupEmail" placeholder="Email" required>
+<select id="signupYear" required><option value="">Select Year</option><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option><option value="4">4th Year</option></select>
+<input type="password" id="signupPass" placeholder="Password" required>
+<button class="btn" style="width:100%;margin-top:12px">Create Account →</button>
+</form>
+<div class="toggle-link">
+Already have account? <a onclick="app.goTo('login')">Sign in</a>
+</div>
+<div style="text-align:center;margin-top:12px">
+<a onclick="app.goTo('landing')" style="color:#4AF2A1;cursor:pointer;font-size:12px">← Back</a>
+</div>
+</div>
+</div>
+</div>
+
+<div id="dashboardSection" class="section">
 <div class="top-nav">
 <div class="logo">📚 AURA</div>
 <div class="countdown" id="countdownBadge">⏳ 7 days</div>
 <button class="btn" style="padding:6px 14px;font-size:12px" onclick="app.logout()">Logout</button>
 </div>
+
 <div class="content">
 
 <div id="syllabus" class="section active">
@@ -409,7 +510,6 @@ input:focus{outline:none;border-color:#4AF2A1;box-shadow:0 0 15px rgba(74,242,16
 </div>
 </div>
 </div>
-</div>
 
 <nav class="bottom-nav" id="bottomNav" style="display:none">
 <button class="nav-btn active" onclick="app.goTo('dashboard')"><span style="font-size:18px">🏠</span>Home</button>
@@ -423,38 +523,60 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x0a0a24);
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.z = 5;
+
 const geometry = new THREE.BufferGeometry();
 const count = 4200;
 let positions = new Float32Array(count * 3);
 let colors = new Float32Array(count * 3);
+
 const colorA = new THREE.Color(0xaef6cf);
 const colorB = new THREE.Color(0x5fe6a0);
 const colorC = new THREE.Color(0xeafff2);
+
 for (let i = 0; i < count; i++) {
   positions[i * 3] = (Math.random() - 0.5) * 24;
   positions[i * 3 + 1] = (Math.random() - 0.5) * 16;
   positions[i * 3 + 2] = (Math.random() - 0.5) * 30;
+
   let palette = Math.floor(Math.random() * 3);
   let color = palette === 0 ? colorA : palette === 1 ? colorB : colorC;
   let bright = 0.7 + Math.random() * 0.6;
+
   colors[i * 3] = color.r * bright;
   colors[i * 3 + 1] = color.g * bright;
   colors[i * 3 + 2] = color.b * bright;
 }
+
 geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
 const material = new THREE.PointsMaterial({ size: 0.15, vertexColors: true, transparent: true, sizeAttenuation: true });
 const stars = new THREE.Points(geometry, material);
 scene.add(stars);
+
+let mouseX = 0;
+let mouseY = 0;
+
+document.addEventListener('mousemove', (e) => {
+  mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+  mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+});
+
 function animate() {
   requestAnimationFrame(animate);
   stars.rotation.z += 0.00005;
+  camera.position.x = mouseX * 0.5;
+  camera.position.y = mouseY * 0.5;
+  camera.lookAt(0, 0, 0);
   renderer.render(scene, camera);
 }
+
 animate();
+
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -472,25 +594,17 @@ class App {
   }
 
   init() {
-    // Only init once!
     if (this.initialized) return;
     this.initialized = true;
 
     const saved = localStorage.getItem('aura_user');
-    if (!saved) {
-      document.getElementById('loginSection').classList.remove('hidden');
-      return;
+    if (saved) {
+      this.user = JSON.parse(saved);
+      this.goTo('dashboardSection');
+      this.loadApp();
+    } else {
+      this.goTo('landingSection');
     }
-
-    this.user = JSON.parse(saved);
-    this.showApp();
-  }
-
-  showApp() {
-    document.getElementById('loginSection').classList.add('hidden');
-    document.getElementById('mainApp').style.display = 'block';
-    document.getElementById('bottomNav').style.display = 'flex';
-    this.loadApp();
   }
 
   async loadApp() {
@@ -504,6 +618,8 @@ class App {
       } else {
         this.goTo('dashboard');
       }
+      
+      document.getElementById('bottomNav').style.display = 'flex';
     } catch (e) {
       console.error('Error loading app:', e);
     }
@@ -512,7 +628,6 @@ class App {
   async handleLogin(e) {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPass').value;
     
     try {
       const res = await fetch(this.API + '/auth/login', {
@@ -524,9 +639,37 @@ class App {
       if (res.success) {
         this.user = res.student;
         localStorage.setItem('aura_user', JSON.stringify(this.user));
-        this.showApp();
+        this.goTo('dashboardSection');
+        await this.loadApp();
       } else {
         alert('Login failed');
+      }
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+    return false;
+  }
+
+  async handleSignup(e) {
+    e.preventDefault();
+    const name = document.getElementById('signupName').value;
+    const email = document.getElementById('signupEmail').value;
+    const year = parseInt(document.getElementById('signupYear').value);
+    
+    try {
+      const res = await fetch(this.API + '/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, year })
+      }).then(r => r.json());
+
+      if (res.success) {
+        this.user = res.student;
+        localStorage.setItem('aura_user', JSON.stringify(this.user));
+        this.goTo('dashboardSection');
+        await this.loadApp();
+      } else {
+        alert('Signup failed');
       }
     } catch (e) {
       alert('Error: ' + e.message);
@@ -561,7 +704,7 @@ class App {
     const html = this.courses.map(c => \`
       <div class="course-box">
         <div class="course-title">\${c.course_name} (\${c.course_code})</div>
-        <div class="course-code">\${c.semester} • \${c.topics.length} topics</div>
+        <div style="font-size:12px;color:#cbd5e1;margin-bottom:8px">\${c.semester} • \${c.topics.length} topics</div>
         <div class="progress-bar"><div class="progress-fill" style="width:\${c.progress_percentage}%"><\/div><\/div>
         <div style="font-size:11px;color:#cbd5e1;margin-top:4px">\${c.progress_percentage}% Complete (\${(c.completed_topics || []).length}/\${c.topics.length} topics)</div>
         <div class="topics-list">
@@ -684,15 +827,8 @@ class App {
   logout() {
     localStorage.removeItem('aura_user');
     this.user = null;
-    document.getElementById('mainApp').style.display = 'none';
     document.getElementById('bottomNav').style.display = 'none';
-    document.getElementById('loginSection').classList.remove('hidden');
-    document.getElementById('loginEmail').value = '';
-    document.getElementById('loginPass').value = '';
-  }
-
-  showSignup() {
-    alert('Sign up coming next');
+    this.goTo('landingSection');
   }
 }
 
@@ -702,4 +838,4 @@ app.init();
 </body></html>`);
 });
 
-app.listen(PORT, () => console.log('🚀 AURA (NO RELOAD LOOP) on ' + PORT));
+app.listen(PORT, () => console.log('🚀 AURA COMPLETE FINAL on ' + PORT));

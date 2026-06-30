@@ -1,1 +1,70 @@
-
+{
+  "name": "aura-academy-backend",
+  "version": "1.0.0",
+  "description": "AURA Academy - AI-Powered Study Platform Backend",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "lint": "eslint src/**/*.ts",
+    "format": "prettier --write src/**/*.ts",
+    "test": "jest",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "education",
+    "ai",
+    "study",
+    "zambia",
+    "quiz",
+    "learning"
+  ],
+  "author": "Tekaru",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "@supabase/supabase-js": "^2.38.5",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.1.2",
+    "bcrypt": "^5.1.1",
+    "axios": "^1.6.2",
+    "zod": "^4.1.13",
+    "pino": "^8.17.2",
+    "pino-http": "^8.5.0",
+    "pino-pretty": "^10.2.3",
+    "bull": "^4.11.4",
+    "redis": "^4.6.11",
+    "uuid": "^9.0.1",
+    "crypto": "^1.0.3",
+    "multer": "^1.4.5-lts.1",
+    "aws-sdk": "^2.1517.0",
+    "@sentry/node": "^7.82.0",
+    "@sentry/tracing": "^7.82.0",
+    "posthog": "^3.2.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.6",
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/multer": "^1.4.11",
+    "typescript": "^5.3.3",
+    "tsx": "^4.7.0",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "prettier": "^3.1.1",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.11",
+    "ts-jest": "^29.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

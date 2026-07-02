@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
-import Login from './screens/Login'
+import login from './screens/login'
 import Signup from './screens/Signup'
 import Dashboard from './screens/Dashboard'
 import Syllabus from './screens/Syllabus'

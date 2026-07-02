@@ -9,12 +9,11 @@ const checkPremium = require('./middleware/checkPremium')
 
 // ── Routes (we will build each one next) ──
 const authRoutes = require('./routes/auth')
-const courseRoutes = require('./routes/courses')
-const topicRoutes = require('./routes/topics')
+const courseRoutes = require('./routes/course')
 const uploadRoutes = require('./routes/uploads')
 const aiRoutes = require('./routes/ai')
 const quizRoutes = require('./routes/quiz')
-const groupRoutes = require('./routes/groups')
+const groupRoutes = require('./routes/group')
 const paymentRoutes = require('./routes/payments')
 const dashboardRoutes = require('./routes/dashboard')
 
@@ -45,7 +44,6 @@ app.use('/api/payments', paymentRoutes)
 // ── Protected routes (auth required for all below) ──
 app.use('/api/dashboard', requireAuth, dashboardRoutes)
 app.use('/api/courses',   requireAuth, courseRoutes)
-app.use('/api/topics',    requireAuth, topicRoutes)
 app.use('/api/uploads',   requireAuth, uploadRoutes)
 app.use('/api/groups',    requireAuth, groupRoutes)
 

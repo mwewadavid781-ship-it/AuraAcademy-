@@ -148,7 +148,7 @@ function ExplainTool({ upload }) {
         <label className='label'>What do you want explained?</label>
         <input
           className='input'
-          placeholder='e.g. Newton\'s second law, integration by parts...'
+          placeholder="e.g. Newton\'s second law, integration by parts..."
           value={topic}
           onChange={e => { setTopic(e.target.value); setError('') }}
           onKeyDown={e => e.key === 'Enter' && run()}

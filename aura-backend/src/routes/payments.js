@@ -1,324 +1,221 @@
 const express = require('express')
 const router = express.Router()
 const { createClient } = require('@supabase/supabase-js')
-const checkPremium = require('../middleware/checkPremium')
+const { v4: uuidv4 } = require('uuid')
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 )
 
-// ── POST /api/groups — create a group (premium) ────────
-router.post('/', checkPremium, async (req, res) => {
+// ── POST /api/payments/initiate ────────────────────────
+// Frontend calls this to start a payment
+router.post('/initiate', async (req, res) => {
   try {
-    const { name, description, course_id } = req.body
+    const { phone_number, amount, plan_type } = req.body
+    const token = req.headers.authorization?.split(' ')[1]
 
-    if (!name || !course_id) {
-      return res.status(400).json({ error: 'name and course_id are required' })
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' })
     }
 
-    // Verify course belongs to user
-    const { data: course } = await supabase
-      .from('courses')
-      .select('id')
-      .eq('id', course_id)
-      .eq('user_id', req.user.id)
-      .single()
-
-    if (!course) {
-      return res.status(404).json({ error: 'Course not found' })
-    }
-
-    // Create the group
-    const { data: group, error: groupErr } = await supabase
-      .from('groups')
-      .insert({
-        name,
-        description: description || null,
-        course_id,
-        owner_id: req.user.id
+    if (!phone_number || !amount || !plan_type) {
+      return res.status(400).json({
+        error: 'phone_number, amount, and plan_type are required'
       })
-      .select()
-      .single()
+    }
 
-    if (groupErr) throw groupErr
+    // Verify user from token
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token)
+    if (authErr || !user) {
+      return res.status(401).json({ error: 'Invalid token' })
+    }
 
-    // Auto-add creator as first member
-    await supabase.from('group_members').insert({
-      group_id: group.id,
-      user_id: req.user.id
+    // Validate plan
+    const validPlans = {
+      monthly: 50,      // ZMW
+      quarterly: 120,   // ZMW
+      annual: 400       // ZMW
+    }
+
+    if (!validPlans[plan_type] || validPlans[plan_type] !== amount) {
+      return res.status(400).json({ error: 'Invalid amount for plan' })
+    }
+
+    // Create payment record in DB (pending)
+    const paymentId = uuidv4()
+    const { error: payErr } = await supabase
+      .from('payments')
+      .insert({
+        id: paymentId,
+        user_id: user.id,
+        phone_number,
+        amount,
+        plan_type,
+        status: 'pending',
+        mtn_reference: null
+      })
+
+    if (payErr) throw payErr
+
+    // TODO: Call MTN MoMo API to initiate payment
+    // This is a placeholder — integrate actual MTN MoMo SDK/API
+    const mtnReference = `MTN-${Date.now()}-${paymentId.slice(0, 8)}`
+
+    res.status(201).json({
+      payment_id: paymentId,
+      mtn_reference: mtnReference,
+      message: 'Payment initiated. Please confirm on your phone.'
     })
-
-    res.status(201).json({ group })
   } catch (err) {
-    console.error('POST /groups error:', err)
-    res.status(500).json({ error: 'Failed to create group' })
+    console.error('POST /payments/initiate error:', err)
+    res.status(500).json({ error: 'Payment initiation failed' })
   }
 })
 
-// ── GET /api/groups — all groups user belongs to ───────
-router.get('/', async (req, res) => {
+// ── POST /api/payments/webhook ─────────────────────────
+// MTN MoMo calls this to confirm payment (webhook)
+router.post('/webhook', async (req, res) => {
   try {
-    // Get group IDs the user is a member of
-    const { data: memberships } = await supabase
-      .from('group_members')
-      .select('group_id, last_read_at')
-      .eq('user_id', req.user.id)
+    const { reference, status, user_id, amount, plan_type } = req.body
 
-    if (!memberships || memberships.length === 0) {
-      return res.json({ groups: [] })
+    if (!reference || !status) {
+      return res.status(400).json({ error: 'reference and status required' })
     }
 
-    const groupIds = memberships.map(m => m.group_id)
+    // Verify webhook came from MTN (in production, check signature)
+    // For now, just process it
 
-    const { data: groups, error } = await supabase
-      .from('groups')
-      .select(`
-        id, name, description, invite_code, is_active, created_at,
-        courses(course_name, course_code),
-        group_members(count)
-      `)
-      .in('id', groupIds)
-      .eq('is_active', true)
+    if (status === 'success') {
+      // Find payment by reference
+      const { data: payment, error: payErr } = await supabase
+        .from('payments')
+        .select('id, user_id')
+        .eq('mtn_reference', reference)
+        .single()
+
+      if (payErr || !payment) {
+        return res.status(404).json({ error: 'Payment not found' })
+      }
+
+      // Update payment status
+      await supabase
+        .from('payments')
+        .update({ status: 'completed' })
+        .eq('id', payment.id)
+
+      // Calculate subscription expiry based on plan
+      const now = new Date()
+      let expiryDate = new Date(now)
+
+      const planDuration = {
+        monthly: 30,
+        quarterly: 90,
+        annual: 365
+      }
+
+      if (planDuration[plan_type]) {
+        expiryDate.setDate(expiryDate.getDate() + planDuration[plan_type])
+      }
+
+      // Update user subscription
+      const { error: subErr } = await supabase
+        .from('users')
+        .update({
+          subscription_status: 'active',
+          subscription_expiry: expiryDate.toISOString(),
+          subscription_plan: plan_type
+        })
+        .eq('id', payment.user_id)
+
+      if (subErr) throw subErr
+
+      res.json({ success: true, message: 'Payment confirmed and subscription activated' })
+    } else if (status === 'failed') {
+      // Update payment to failed
+      const { data: payment } = await supabase
+        .from('payments')
+        .select('id')
+        .eq('mtn_reference', reference)
+        .single()
+
+      if (payment) {
+        await supabase
+          .from('payments')
+          .update({ status: 'failed' })
+          .eq('id', payment.id)
+      }
+
+      res.json({ success: false, message: 'Payment failed' })
+    } else {
+      res.json({ success: false, message: 'Unknown status' })
+    }
+  } catch (err) {
+    console.error('POST /payments/webhook error:', err)
+    res.status(500).json({ error: 'Webhook processing failed' })
+  }
+})
+
+// ── GET /api/payments/status/:payment_id ───────────────
+// Check payment status
+router.get('/status/:payment_id', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1]
+
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token)
+    if (authErr || !user) {
+      return res.status(401).json({ error: 'Invalid token' })
+    }
+
+    const { data: payment, error } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('id', req.params.payment_id)
+      .eq('user_id', user.id)
+      .single()
+
+    if (error || !payment) {
+      return res.status(404).json({ error: 'Payment not found' })
+    }
+
+    res.json({ payment })
+  } catch (err) {
+    console.error('GET /payments/status error:', err)
+    res.status(500).json({ error: 'Failed to fetch payment status' })
+  }
+})
+
+// ── GET /api/payments/history ──────────────────────────
+// Get user's payment history
+router.get('/history', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1]
+
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token)
+    if (authErr || !user) {
+      return res.status(401).json({ error: 'Invalid token' })
+    }
+
+    const { data: payments, error } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
     if (error) throw error
 
-    // Attach unread count per group
-    const enriched = await Promise.all(groups.map(async (g) => {
-      const membership = memberships.find(m => m.group_id === g.id)
-      const { count } = await supabase
-        .from('group_messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('group_id', g.id)
-        .gt('created_at', membership?.last_read_at || '1970-01-01')
-
-      return { ...g, unread_count: count || 0 }
-    }))
-
-    res.json({ groups: enriched })
+    res.json({ payments })
   } catch (err) {
-    console.error('GET /groups error:', err)
-    res.status(500).json({ error: 'Failed to fetch groups' })
-  }
-})
-
-// ── GET /api/groups/:id — single group detail ──────────
-router.get('/:id', async (req, res) => {
-  try {
-    // Check membership
-    const { data: membership } = await supabase
-      .from('group_members')
-      .select('id')
-      .eq('group_id', req.params.id)
-      .eq('user_id', req.user.id)
-      .single()
-
-    if (!membership) {
-      return res.status(403).json({ error: 'Not a member of this group' })
-    }
-
-    const { data: group, error } = await supabase
-      .from('groups')
-      .select(`
-        *,
-        courses(course_name, course_code),
-        group_members(
-          user_id, joined_at,
-          users(full_name, avatar_url)
-        )
-      `)
-      .eq('id', req.params.id)
-      .single()
-
-    if (error || !group) {
-      return res.status(404).json({ error: 'Group not found' })
-    }
-
-    res.json({ group })
-  } catch (err) {
-    console.error('GET /groups/:id error:', err)
-    res.status(500).json({ error: 'Failed to fetch group' })
-  }
-})
-
-// ── POST /api/groups/join — join by invite code ────────
-router.post('/join', checkPremium, async (req, res) => {
-  try {
-    const { invite_code } = req.body
-
-    if (!invite_code) {
-      return res.status(400).json({ error: 'invite_code is required' })
-    }
-
-    const { data: group, error } = await supabase
-      .from('groups')
-      .select('id, name, is_active')
-      .eq('invite_code', invite_code.toUpperCase())
-      .single()
-
-    if (error || !group) {
-      return res.status(404).json({ error: 'Invalid invite code' })
-    }
-
-    if (!group.is_active) {
-      return res.status(400).json({ error: 'This group is no longer active' })
-    }
-
-    // Check already a member
-    const { data: existing } = await supabase
-      .from('group_members')
-      .select('id')
-      .eq('group_id', group.id)
-      .eq('user_id', req.user.id)
-      .single()
-
-    if (existing) {
-      return res.status(200).json({ message: 'Already a member', group })
-    }
-
-    await supabase.from('group_members').insert({
-      group_id: group.id,
-      user_id: req.user.id
-    })
-
-    res.status(201).json({ message: `Joined ${group.name}`, group })
-  } catch (err) {
-    console.error('POST /groups/join error:', err)
-    res.status(500).json({ error: 'Failed to join group' })
-  }
-})
-
-// ── GET /api/groups/:id/messages — fetch chat history ──
-router.get('/:id/messages', async (req, res) => {
-  try {
-    // Verify membership
-    const { data: membership } = await supabase
-      .from('group_members')
-      .select('id')
-      .eq('group_id', req.params.id)
-      .eq('user_id', req.user.id)
-      .single()
-
-    if (!membership) {
-      return res.status(403).json({ error: 'Not a member of this group' })
-    }
-
-    const limit = parseInt(req.query.limit) || 50
-    const before = req.query.before // ISO timestamp for pagination
-
-    let query = supabase
-      .from('group_messages')
-      .select(`
-        id, content, message_type, file_url,
-        file_name, metadata, created_at,
-        users(full_name, avatar_url)
-      `)
-      .eq('group_id', req.params.id)
-      .order('created_at', { ascending: false })
-      .limit(limit)
-
-    if (before) {
-      query = query.lt('created_at', before)
-    }
-
-    const { data: messages, error } = await query
-    if (error) throw error
-
-    // Mark as read — update last_read_at
-    await supabase
-      .from('group_members')
-      .update({ last_read_at: new Date().toISOString() })
-      .eq('group_id', req.params.id)
-      .eq('user_id', req.user.id)
-
-    res.json({ messages: messages.reverse() })
-  } catch (err) {
-    console.error('GET /groups/:id/messages error:', err)
-    res.status(500).json({ error: 'Failed to fetch messages' })
-  }
-})
-
-// ── POST /api/groups/:id/messages — send a message ─────
-router.post('/:id/messages', async (req, res) => {
-  try {
-    const { content, message_type, file_url, file_name, metadata } = req.body
-
-    // Verify membership
-    const { data: membership } = await supabase
-      .from('group_members')
-      .select('id')
-      .eq('group_id', req.params.id)
-      .eq('user_id', req.user.id)
-      .single()
-
-    if (!membership) {
-      return res.status(403).json({ error: 'Not a member of this group' })
-    }
-
-    if (!content && !file_url) {
-      return res.status(400).json({ error: 'content or file_url is required' })
-    }
-
-    const { data: message, error } = await supabase
-      .from('group_messages')
-      .insert({
-        group_id: req.params.id,
-        user_id: req.user.id,
-        content: content || null,
-        message_type: message_type || 'text',
-        file_url: file_url || null,
-        file_name: file_name || null,
-        metadata: metadata || null
-      })
-      .select(`
-        id, content, message_type, file_url,
-        file_name, metadata, created_at,
-        users(full_name, avatar_url)
-      `)
-      .single()
-
-    if (error) throw error
-
-    // Supabase Realtime broadcasts this insert automatically
-    // to all subscribers on the group_messages table
-    res.status(201).json({ message })
-  } catch (err) {
-    console.error('POST /groups/:id/messages error:', err)
-    res.status(500).json({ error: 'Failed to send message' })
-  }
-})
-
-// ── DELETE /api/groups/:id — owner can delete group ────
-router.delete('/:id', async (req, res) => {
-  try {
-    const { error } = await supabase
-      .from('groups')
-      .delete()
-      .eq('id', req.params.id)
-      .eq('owner_id', req.user.id)
-
-    if (error) throw error
-    res.json({ message: 'Group deleted' })
-  } catch (err) {
-    console.error('DELETE /groups/:id error:', err)
-    res.status(500).json({ error: 'Failed to delete group' })
-  }
-})
-
-// ── DELETE /api/groups/:id/leave — leave a group ───────
-router.delete('/:id/leave', async (req, res) => {
-  try {
-    await supabase
-      .from('group_members')
-      .delete()
-      .eq('group_id', req.params.id)
-      .eq('user_id', req.user.id)
-
-    res.json({ message: 'Left group' })
-  } catch (err) {
-    console.error('DELETE /groups/:id/leave error:', err)
-    res.status(500).json({ error: 'Failed to leave group' })
+    console.error('GET /payments/history error:', err)
+    res.status(500).json({ error: 'Failed to fetch payment history' })
   }
 })
 

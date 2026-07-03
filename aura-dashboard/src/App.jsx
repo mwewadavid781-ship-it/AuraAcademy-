@@ -1,10 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
-import login from './screens/login'
-import signup from './screens/signup'
+import Login from './screens/Login'
+import Signup from './screens/Signup'
 import Dashboard from './screens/Dashboard'
-import syllabus from './screens/syllabus'
+import Syllabus from './screens/Syllabus'
 import CourseDetail from './screens/CourseDetail'
 import Uploads from './screens/Uploads'
 import AITools from './screens/AITools'

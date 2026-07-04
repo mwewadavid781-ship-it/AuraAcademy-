@@ -27,6 +27,16 @@ function PublicRoute({ children }) {
   return children
 }
 
+function RootRoute() {
+  const { user, loading } = useAuth()
+  if (loading) return <Loader />
+  if (!user) {
+    window.location.href = '/landing.html'
+    return null
+  }
+  return <Navigate to='/dashboard' replace />
+}
+
 function Loader() {
   return (
     <div style={{
@@ -49,7 +59,7 @@ function Loader() {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path='/' element={<Navigate to='/dashboard' replace />} />
+      <Route path='/' element={<RootRoute />} />
       <Route path='/login' element={<PublicRoute><Login /></PublicRoute>} />
       <Route path='/signup' element={<PublicRoute><Signup /></PublicRoute>} />
       <Route path='/dashboard' element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

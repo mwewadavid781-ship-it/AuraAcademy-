@@ -71,7 +71,7 @@ function AppRoutes() {
       <Route path='/groups' element={<ProtectedRoute><Groups /></ProtectedRoute>} />
       <Route path='/groups/:id' element={<ProtectedRoute><GroupChat /></ProtectedRoute>} />
       <Route path='/subscription' element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
-      <Route path='*' element={<Navigate to='/dashboard' replace />} />
+      <Route path='/' element={<RootRoute />} />
     </Routes>
   )
 }

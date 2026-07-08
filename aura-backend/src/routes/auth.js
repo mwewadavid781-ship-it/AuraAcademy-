@@ -167,3 +167,7 @@ router.post('/reset-password', async (req, res) => {
 })
 
 module.exports = router
+// Create user profile row with trial start
+const { error: profileErr } = await supabase
+  .from('users')
+  .insert({

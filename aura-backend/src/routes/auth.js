@@ -41,10 +41,10 @@ router.post('/signup', async (req, res) => {
 
     const userId = authData.user.id
 
-    // Create user profile row with trial start
+    // Create or overwrite user profile row with trial start
     const { error: profileErr } = await supabase
       .from('users')
-      .insert({
+      .upsert({
         id: userId,
         email,
         full_name,
@@ -167,7 +167,3 @@ router.post('/reset-password', async (req, res) => {
 })
 
 module.exports = router
-// Create user profile row with trial start
-const { error: profileErr } = await supabase
-  .from('users')
-  .insert({

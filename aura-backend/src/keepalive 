@@ -1,0 +1,10 @@
+const BACKEND_URL = process.env.RENDER_EXTERNAL_URL || ''
+
+if (BACKEND_URL && process.env.NODE_ENV === 'production') {
+  setInterval(async () => {
+    try {
+      await fetch(`${BACKEND_URL}/health`)
+      console.log('Keepalive ping sent')
+    } catch {}
+  }, 14 * 60 * 1000)
+}

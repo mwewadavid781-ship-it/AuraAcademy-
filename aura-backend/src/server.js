@@ -6,6 +6,7 @@ const { createClient } = require('@supabase/supabase-js')
 
 const requireAuth = require('./middleware/auth')
 const checkPremium = require('./middleware/checkPremium')
+require('./keepalive')
 
 // ── Routes (we will build each one next) ──
 const authRoutes = require('./routes/auth')

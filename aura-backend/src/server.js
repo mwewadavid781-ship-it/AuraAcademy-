@@ -1,4 +1,6 @@
 require('dotenv').config()
+require('./keepalive')
+
 const express = require('express')
 const cors = require('cors')
 const helmet = require('helmet')
@@ -6,15 +8,15 @@ const { createClient } = require('@supabase/supabase-js')
 
 const requireAuth = require('./middleware/auth')
 const checkPremium = require('./middleware/checkPremium')
-require('./keepalive')
 
-// ── Routes (we will build each one next) ──
+// ── Routes ──
 const authRoutes = require('./routes/auth')
-const courseRoutes = require('./routes/course')
+const courseRoutes = require('./routes/courses')
+const topicRoutes = require('./routes/topics')
 const uploadRoutes = require('./routes/uploads')
 const aiRoutes = require('./routes/ai')
 const quizRoutes = require('./routes/quiz')
-const groupRoutes = require('./routes/group')
+const groupRoutes = require('./routes/groups')
 const paymentRoutes = require('./routes/payments')
 const dashboardRoutes = require('./routes/dashboard')
 
@@ -31,7 +33,12 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 
-// ── Root endpoint ──
+// ── Health check (Render pings this to keep service alive) ──
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', time: new Date().toISOString() })
+})
+
+// ── Root info route ──
 app.get('/', (req, res) => {
   res.json({
     message: 'AuraAcademy API',
@@ -51,11 +58,6 @@ app.get('/', (req, res) => {
   })
 })
 
-// ── Health check (Render pings this to keep service alive) ──
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() })
-})
-
 // ── Public routes (no auth needed) ──
 app.use('/api/auth', authRoutes)
 
@@ -65,6 +67,7 @@ app.use('/api/payments', paymentRoutes)
 // ── Protected routes (auth required for all below) ──
 app.use('/api/dashboard', requireAuth, dashboardRoutes)
 app.use('/api/courses',   requireAuth, courseRoutes)
+app.use('/api/topics',    requireAuth, topicRoutes)
 app.use('/api/uploads',   requireAuth, uploadRoutes)
 app.use('/api/groups',    requireAuth, groupRoutes)
 

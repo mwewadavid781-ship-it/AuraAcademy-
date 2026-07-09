@@ -1,4 +1,4 @@
-aconst BACKEND_URL = process.env.RENDER_EXTERNAL_URL || ''
+const BACKEND_URL = process.env.RENDER_EXTERNAL_URL || ''
 
 if (BACKEND_URL && process.env.NODE_ENV === 'production') {
   setInterval(async () => {

@@ -65,7 +65,7 @@ function AppRoutes() {
       <Route path='/dashboard' element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path='/syllabus' element={<ProtectedRoute><Syllabus /></ProtectedRoute>} />
       <Route path='/courses/:id' element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
-      <Route path='/uploads' element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+      <Route path='/upload' element={<ProtectedRoute><Uploads /></ProtectedRoute>} />
       <Route path='/ai/:upload_id' element={<ProtectedRoute><AITools /></ProtectedRoute>} />
       <Route path='/quiz/:id' element={<ProtectedRoute><QuizScreen /></ProtectedRoute>} />
       <Route path='/groups' element={<ProtectedRoute><Groups /></ProtectedRoute>} />

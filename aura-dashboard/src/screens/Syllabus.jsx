@@ -1,659 +1,377 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
-import { coursesAPI, uploadsAPI, quizAPI } from '../lib/api'
+import { Link, useNavigate } from 'react-router-dom'
+import { coursesAPI } from '../lib/api'
 
-const TABS = ['Topics','Assignments','Tests','Uploads','Quizzes']
+const COLORS = [
+  '#34e89a','#60a5fa','#f59e0b','#ef4444',
+  '#a78bfa','#f472b6','#34d399','#fb923c'
+]
 
-function TopicRow({ topic, courseId, onUpdate }) {
-  const [editing, setEditing] = useState(false)
-  const [progress, setProgress] = useState(topic.progress_percent)
+const SEMESTERS = ['Semester 1','Semester 2','Year 1','Year 2','Year 3','Year 4']
 
-  async function saveProgress(val) {
-    setProgress(val)
+function BottomNav({ active }) {
+  const links = [
+    { to: '/dashboard', icon: '⊞', label: 'Home' },
+    { to: '/syllabus', icon: '📚', label: 'Courses' },
+    { to: '/upload', icon: '📄', label: 'Upload' },
+    { to: '/groups', icon: '👥', label: 'Groups' },
+    { to: '/subscription', icon: '✦', label: 'Premium' }
+  ]
+  return (
+    <nav className='bottom-nav'>
+      {links.map(l => (
+        <Link key={l.to} to={l.to} className={active === l.to ? 'active' : ''}>
+          <span className='nav-icon'>{l.icon}</span>
+          {l.label}
+        </Link>
+      ))}
+    </nav>
+  )
+}
+
+function AddCourseSheet({ onClose, onSaved }) {
+  const [form, setForm] = useState({
+    course_name: '', course_code: '',
+    semester: '', exam_date: '', color: COLORS[0]
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  function onChange(e) {
+    setForm(f => ({ ...f, [e.target.name]: e.target.value }))
+    setError('')
+  }
+
+  async function onSave() {
+    if (!form.course_name || !form.course_code || !form.semester) {
+      return setError('Course name, code and semester are required')
+    }
+    setLoading(true)
     try {
-      await fetch(
-        `${import.meta.env.VITE_API_URL}/api/topics/${topic.id}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('aura_token')}`
-          },
-          body: JSON.stringify({ progress_percent: val })
-        }
-      )
-      onUpdate(topic.id, val)
-    } catch {}
-    setEditing(false)
+      const data = await coursesAPI.create({
+        course_name: form.course_name,
+        course_code: form.course_code.toUpperCase(),
+        semester: form.semester,
+        exam_date: form.exam_date || null,
+        color: form.color
+      })
+      onSaved(data.course)
+    } catch (err) {
+      setError(err.message || 'Failed to create course')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div style={{
-      padding: '0.85rem 0',
-      borderBottom: '1px solid rgba(255,255,255,0.04)'
+      position: 'fixed', inset: 0, zIndex: 100,
+      display: 'flex', flexDirection: 'column', justifyContent: 'flex-end'
     }}>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'absolute', inset: 0,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)'
+        }}
+      />
+
+      {/* Sheet */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        background: '#061a10',
+        border: '1px solid var(--green-border)',
+        borderRadius: '24px 24px 0 0',
+        padding: '1.5rem 1.25rem 2.5rem',
+        maxHeight: '90vh', overflowY: 'auto'
+      }}>
+        {/* Handle */}
+        <div style={{
+          width: 40, height: 4, borderRadius: 4,
+          background: 'var(--green-border)',
+          margin: '0 auto 1.25rem'
+        }} />
+
+        <h2 style={{
+          fontFamily: 'Space Grotesk, sans-serif',
+          fontSize: '1.1rem', fontWeight: 700,
+          marginBottom: '1.25rem'
+        }}>
+          Add New Course
+        </h2>
+
+        {error && (
+          <div className='error-msg' style={{ marginBottom: '1rem' }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          <div>
+            <label className='label'>Course Name</label>
+            <input
+              className='input'
+              name='course_name'
+              placeholder='e.g. Engineering Mathematics'
+              value={form.course_name}
+              onChange={onChange}
+            />
+          </div>
+
+          <div>
+            <label className='label'>Course Code</label>
+            <input
+              className='input'
+              name='course_code'
+              placeholder='e.g. ENG201'
+              value={form.course_code}
+              onChange={onChange}
+              style={{ textTransform: 'uppercase' }}
+            />
+          </div>
+
+          <div>
+            <label className='label'>Semester</label>
+            <select
+              className='input'
+              name='semester'
+              value={form.semester}
+              onChange={onChange}
+              style={{ background: 'var(--surface)' }}
+            >
+              <option value=''>Select semester</option>
+              {SEMESTERS.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className='label'>Exam Date (optional)</label>
+            <input
+              className='input'
+              type='date'
+              name='exam_date'
+              value={form.exam_date}
+              onChange={onChange}
+              style={{ colorScheme: 'dark' }}
+            />
+          </div>
+
+          {/* Color picker */}
+          <div>
+            <label className='label'>Course Color</label>
+            <div style={{
+              display: 'flex', gap: '0.5rem', flexWrap: 'wrap'
+            }}>
+              {COLORS.map(c => (
+                <button
+                  key={c}
+                  onClick={() => setForm(f => ({ ...f, color: c }))}
+                  style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: c, border: 'none', cursor: 'pointer',
+                    outline: form.color === c
+                      ? `3px solid white`
+                      : '3px solid transparent',
+                    outlineOffset: 2
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <button
+            className='btn btn-primary'
+            style={{ width: '100%', padding: '0.85rem', marginTop: '0.5rem' }}
+            onClick={onSave}
+            disabled={loading}
+          >
+            {loading ? 'Saving...' : 'Add Course'}
+          </button>
+
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CourseRow({ course, onDelete }) {
+  const navigate = useNavigate()
+  const [confirming, setConfirming] = useState(false)
+
+  async function handleDelete(e) {
+    e.stopPropagation()
+    if (!confirming) return setConfirming(true)
+    try {
+      await coursesAPI.delete(course.id)
+      onDelete(course.id)
+    } catch {}
+  }
+
+  const progress = course.overall_progress || 0
+  const topicCount = course.topics?.length || 0
+
+  return (
+    <div
+      className='card'
+      style={{
+        borderLeft: `3px solid ${course.color || 'var(--green)'}`,
+        marginBottom: '0.75rem', cursor: 'pointer'
+      }}
+      onClick={() => navigate(`/courses/${course.id}`)}
+    >
       <div style={{
         display: 'flex', justifyContent: 'space-between',
-        alignItems: 'center', marginBottom: '0.5rem'
+        alignItems: 'flex-start', marginBottom: '0.5rem'
       }}>
-        <p style={{ fontSize: '0.875rem', fontWeight: 500 }}>
-          {topic.title}
-        </p>
+        <div style={{ flex: 1 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            gap: '0.5rem', marginBottom: '0.3rem'
+          }}>
+            <span className='tag tag-dim'>{course.course_code}</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>
+              {course.semester}
+            </span>
+          </div>
+          <p style={{ fontSize: '0.95rem', fontWeight: 600 }}>
+            {course.course_name}
+          </p>
+        </div>
+
         <button
-          onClick={() => setEditing(!editing)}
+          onClick={handleDelete}
           style={{
             background: 'none', border: 'none',
-            color: 'var(--green)', fontSize: '0.75rem',
-            cursor: 'pointer', fontWeight: 600
+            cursor: 'pointer', fontSize: '0.75rem',
+            color: confirming ? '#ef4444' : 'var(--text-faint)',
+            padding: '0.25rem 0.5rem', flexShrink: 0
           }}
         >
-          {progress}%
+          {confirming ? 'Confirm?' : '✕'}
         </button>
       </div>
 
-      {/* Progress bar */}
+      {/* Progress */}
       <div style={{
         height: 3, background: 'var(--surface2)',
-        borderRadius: 4, overflow: 'hidden'
+        borderRadius: 4, overflow: 'hidden', marginBottom: '0.5rem'
       }}>
         <div style={{
-          height: '100%', background: 'var(--green)',
-          width: `${progress}%`, borderRadius: 4,
-          transition: 'width 0.4s ease'
+          height: '100%', borderRadius: 4,
+          background: course.color || 'var(--green)',
+          width: `${progress}%`, transition: 'width 0.6s ease'
         }} />
       </div>
 
-      {/* Progress slider */}
-      {editing && (
-        <div style={{ marginTop: '0.75rem' }}>
-          <input
-            type='range' min={0} max={100} step={10}
-            value={progress}
-            onChange={e => setProgress(Number(e.target.value))}
-            style={{ width: '100%', accentColor: 'var(--green)' }}
-          />
-          <div style={{
-            display: 'flex', justifyContent: 'space-between',
-            marginTop: '0.5rem', gap: '0.5rem'
-          }}>
-            <button
-              className='btn btn-ghost'
-              style={{ flex: 1, fontSize: '0.78rem', padding: '0.4rem' }}
-              onClick={() => setEditing(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className='btn btn-primary'
-              style={{ flex: 1, fontSize: '0.78rem', padding: '0.4rem' }}
-              onClick={() => saveProgress(progress)}
-            >
-              Save
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function AddTopicForm({ courseId, onAdded, onClose }) {
-  const [title, setTitle] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  async function onSave() {
-    if (!title.trim()) return
-    setLoading(true)
-    try {
-      const data = await coursesAPI.addTopic(courseId, { title })
-      onAdded(data.topic)
-      onClose()
-    } catch {} finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div style={{
-      background: 'var(--surface2)',
-      border: '1px solid var(--green-border)',
-      borderRadius: 12, padding: '1rem',
-      marginTop: '0.75rem'
-    }}>
-      <input
-        className='input'
-        placeholder='Topic name e.g. Integration by Parts'
-        value={title}
-        onChange={e => setTitle(e.target.value)}
-        autoFocus
-        onKeyDown={e => e.key === 'Enter' && onSave()}
-        style={{ marginBottom: '0.75rem' }}
-      />
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button
-          className='btn btn-ghost'
-          style={{ flex: 1, fontSize: '0.8rem' }}
-          onClick={onClose}
-        >
-          Cancel
-        </button>
-        <button
-          className='btn btn-primary'
-          style={{ flex: 1, fontSize: '0.8rem' }}
-          onClick={onSave}
-          disabled={loading}
-        >
-          {loading ? '...' : 'Add Topic'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function AssignmentRow({ a }) {
-  const statusColor = {
-    pending: '#f59e0b',
-    submitted: '#34e89a',
-    graded: '#60a5fa'
-  }
-  return (
-    <div style={{
-      padding: '0.85rem 0',
-      borderBottom: '1px solid rgba(255,255,255,0.04)',
-      display: 'flex', justifyContent: 'space-between',
-      alignItems: 'center'
-    }}>
-      <div>
-        <p style={{ fontSize: '0.875rem', fontWeight: 500 }}>{a.title}</p>
-        {a.due_date && (
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-faint)', marginTop: '0.2rem' }}>
-            Due {new Date(a.due_date).toLocaleDateString('en-GB', {
-              weekday: 'short', day: 'numeric', month: 'short'
-            })}
-          </p>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        fontSize: '0.72rem', color: 'var(--text-faint)'
+      }}>
+        <span>{topicCount} topic{topicCount !== 1 ? 's' : ''}</span>
+        <span>{progress}% complete</span>
+        {course.exam_date && (
+          <span>📅 {new Date(course.exam_date).toLocaleDateString('en-GB', {
+            day: 'numeric', month: 'short'
+          })}</span>
         )}
       </div>
-      <span style={{
-        fontSize: '0.68rem', fontWeight: 700,
-        color: statusColor[a.status] || 'var(--text-dim)',
-        textTransform: 'uppercase', letterSpacing: '0.05em'
-      }}>
-        {a.status}
-      </span>
     </div>
   )
 }
 
-function AddAssignmentForm({ courseId, onAdded, onClose }) {
-  const [form, setForm] = useState({ title: '', due_date: '' })
-  const [loading, setLoading] = useState(false)
-
-  async function onSave() {
-    if (!form.title.trim()) return
-    setLoading(true)
-    try {
-      const data = await coursesAPI.addAssignment(courseId, form)
-      onAdded(data.assignment)
-      onClose()
-    } catch {} finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div style={{
-      background: 'var(--surface2)',
-      border: '1px solid var(--green-border)',
-      borderRadius: 12, padding: '1rem',
-      marginTop: '0.75rem'
-    }}>
-      <input
-        className='input'
-        placeholder='Assignment title'
-        value={form.title}
-        onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-        style={{ marginBottom: '0.75rem' }}
-        autoFocus
-      />
-      <input
-        className='input'
-        type='datetime-local'
-        value={form.due_date}
-        onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
-        style={{ marginBottom: '0.75rem', colorScheme: 'dark' }}
-      />
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button className='btn btn-ghost' style={{ flex: 1, fontSize: '0.8rem' }} onClick={onClose}>
-          Cancel
-        </button>
-        <button
-          className='btn btn-primary'
-          style={{ flex: 1, fontSize: '0.8rem' }}
-          onClick={onSave} disabled={loading}
-        >
-          {loading ? '...' : 'Add'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function AddTestForm({ courseId, onAdded, onClose }) {
-  const [form, setForm] = useState({ title: '', test_date: '' })
-  const [loading, setLoading] = useState(false)
-
-  async function onSave() {
-    if (!form.title || !form.test_date) return
-    setLoading(true)
-    try {
-      const data = await coursesAPI.addTestDate(courseId, form)
-      onAdded(data.test_date)
-      onClose()
-    } catch {} finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div style={{
-      background: 'var(--surface2)',
-      border: '1px solid var(--green-border)',
-      borderRadius: 12, padding: '1rem', marginTop: '0.75rem'
-    }}>
-      <input
-        className='input'
-        placeholder='Test title e.g. CAT 1'
-        value={form.title}
-        onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-        style={{ marginBottom: '0.75rem' }}
-        autoFocus
-      />
-      <input
-        className='input'
-        type='datetime-local'
-        value={form.test_date}
-        onChange={e => setForm(f => ({ ...f, test_date: e.target.value }))}
-        style={{ marginBottom: '0.75rem', colorScheme: 'dark' }}
-      />
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button className='btn btn-ghost' style={{ flex: 1, fontSize: '0.8rem' }} onClick={onClose}>Cancel</button>
-        <button className='btn btn-primary' style={{ flex: 1, fontSize: '0.8rem' }} onClick={onSave} disabled={loading}>
-          {loading ? '...' : 'Add'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-export default function CourseDetail() {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const [course, setCourse] = useState(null)
-  const [uploads, setUploads] = useState([])
-  const [quizzes, setQuizzes] = useState([])
+export default function Syllabus() {
+  const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('Topics')
-  const [showForm, setShowForm] = useState(null)
+  const [showAdd, setShowAdd] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     async function load() {
       try {
-        const [cData, uData, qData] = await Promise.all([
-          coursesAPI.get(id),
-          uploadsAPI.list(id),
-          quizAPI.list(id)
-        ])
-        setCourse(cData.course)
-        setUploads(uData.uploads || [])
-        setQuizzes(qData.quizzes || [])
-      } catch {
-        navigate('/syllabus')
+        const data = await coursesAPI.list()
+        setCourses(data.courses || [])
+      } catch (err) {
+        setError('Failed to load courses')
       } finally {
         setLoading(false)
       }
     }
     load()
-  }, [id])
+  }, [])
 
-  function onTopicUpdate(topicId, val) {
-    setCourse(c => ({
-      ...c,
-      topics: c.topics.map(t =>
-        t.id === topicId ? { ...t, progress_percent: val } : t
-      )
-    }))
+  function onSaved(course) {
+    setCourses(prev => [...prev, { ...course, overall_progress: 0 }])
+    setShowAdd(false)
   }
 
-  if (loading) return (
-    <div style={{
-      minHeight: '100vh', background: 'var(--bg)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center'
-    }}>
-      <div className='spinner' />
-    </div>
-  )
-
-  if (!course) return null
-
-  const avgProgress = course.topics?.length
-    ? Math.round(course.topics.reduce((s, t) => s + t.progress_percent, 0) / course.topics.length)
-    : 0
+  function onDelete(id) {
+    setCourses(prev => prev.filter(c => c.id !== id))
+  }
 
   return (
     <div className='screen'>
-
-      {/* Header */}
       <div className='screen-header'>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button
-            onClick={() => navigate('/syllabus')}
-            style={{
-              background: 'none', border: 'none',
-              color: 'var(--text-dim)', cursor: 'pointer',
-              fontSize: '1.1rem', padding: 0
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <p style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>
-              {course.course_code} · {course.semester}
-            </p>
-            <h1 className='screen-title' style={{ fontSize: '0.95rem' }}>
-              {course.course_name}
-            </h1>
-          </div>
-        </div>
+        <h1 className='screen-title'>My Courses</h1>
         <button
           className='btn btn-primary'
-          style={{ fontSize: '0.75rem', padding: '0.45rem 0.9rem' }}
-          onClick={() => navigate(`/upload?course_id=${id}`)}
+          style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}
+          onClick={() => setShowAdd(true)}
         >
-          Upload
+          + Add
         </button>
       </div>
 
-      {/* Course summary */}
-      <div style={{
-        padding: '1rem 1.25rem',
-        borderLeft: `3px solid ${course.color || 'var(--green)'}`,
-        margin: '0.75rem 1.25rem 0',
-        background: 'var(--surface)',
-        borderRadius: '0 12px 12px 0'
-      }}>
-        <div style={{
-          display: 'flex', justifyContent: 'space-between',
-          alignItems: 'center', marginBottom: '0.5rem'
-        }}>
-          <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>
-            Overall Progress
-          </p>
-          <p style={{
-            fontSize: '0.875rem', fontWeight: 700,
-            color: course.color || 'var(--green)'
-          }}>
-            {avgProgress}%
-          </p>
-        </div>
-        <div style={{
-          height: 5, background: 'var(--surface2)',
-          borderRadius: 4, overflow: 'hidden'
-        }}>
-          <div style={{
-            height: '100%', borderRadius: 4,
-            background: course.color || 'var(--green)',
-            width: `${avgProgress}%`, transition: 'width 0.6s ease'
-          }} />
-        </div>
-        {course.exam_date && (
-          <p style={{ fontSize: '0.72rem', color: 'var(--text-faint)', marginTop: '0.5rem' }}>
-            📅 Exam: {new Date(course.exam_date).toLocaleDateString('en-GB', {
-              weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-            })}
-          </p>
-        )}
-      </div>
+      <div style={{ padding: '1.25rem' }}>
 
-      {/* Tabs */}
-      <div style={{
-        display: 'flex', gap: '0.25rem',
-        padding: '1rem 1.25rem 0',
-        overflowX: 'auto', scrollbarWidth: 'none'
-      }}>
-        {TABS.map(t => (
-          <button
-            key={t}
-            onClick={() => { setTab(t); setShowForm(null) }}
-            style={{
-              background: tab === t ? 'var(--green)' : 'var(--surface)',
-              color: tab === t ? '#02160c' : 'var(--text-dim)',
-              border: `1px solid ${tab === t ? 'var(--green)' : 'var(--green-border)'}`,
-              borderRadius: 100, padding: '0.35rem 0.85rem',
-              fontSize: '0.78rem', fontWeight: 600,
-              cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0
-            }}
-          >
-            {t}
-          </button>
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '3rem 0' }}>
+            <div className='spinner' />
+          </div>
+        )}
+
+        {error && <div className='error-msg'>{error}</div>}
+
+        {!loading && courses.length === 0 && (
+          <div className='empty'>
+            <span className='empty-icon'>📚</span>
+            <h3>No courses yet</h3>
+            <p>Add your first course to start building your syllabus. Only add courses you actually study.</p>
+            <button
+              className='btn btn-primary'
+              onClick={() => setShowAdd(true)}
+            >
+              Add First Course
+            </button>
+          </div>
+        )}
+
+        {courses.map(c => (
+          <CourseRow key={c.id} course={c} onDelete={onDelete} />
         ))}
-      </div>
 
-      {/* Tab content */}
-      <div style={{ padding: '1rem 1.25rem' }}>
-
-        {/* TOPICS */}
-        {tab === 'Topics' && (
-          <div>
-            <div className='card' style={{ padding: '0 1rem' }}>
-              {course.topics?.length === 0 && (
-                <p style={{
-                  padding: '1rem 0', textAlign: 'center',
-                  color: 'var(--text-faint)', fontSize: '0.875rem'
-                }}>
-                  No topics yet
-                </p>
-              )}
-              {course.topics?.map(t => (
-                <TopicRow
-                  key={t.id} topic={t}
-                  courseId={id} onUpdate={onTopicUpdate}
-                />
-              ))}
-            </div>
-            {showForm === 'topic'
-              ? <AddTopicForm
-                  courseId={id}
-                  onAdded={t => setCourse(c => ({ ...c, topics: [...(c.topics||[]), t] }))}
-                  onClose={() => setShowForm(null)}
-                />
-              : (
-                <button
-                  className='btn btn-ghost'
-                  style={{ width: '100%', marginTop: '0.75rem' }}
-                  onClick={() => setShowForm('topic')}
-                >
-                  + Add Topic
-                </button>
-              )
-            }
-          </div>
-        )}
-
-        {/* ASSIGNMENTS */}
-        {tab === 'Assignments' && (
-          <div>
-            <div className='card' style={{ padding: '0 1rem' }}>
-              {course.assignments?.length === 0 && (
-                <p style={{
-                  padding: '1rem 0', textAlign: 'center',
-                  color: 'var(--text-faint)', fontSize: '0.875rem'
-                }}>
-                  No assignments yet
-                </p>
-              )}
-              {course.assignments?.map(a => (
-                <AssignmentRow key={a.id} a={a} />
-              ))}
-            </div>
-            {showForm === 'assignment'
-              ? <AddAssignmentForm
-                  courseId={id}
-                  onAdded={a => setCourse(c => ({ ...c, assignments: [...(c.assignments||[]), a] }))}
-                  onClose={() => setShowForm(null)}
-                />
-              : (
-                <button
-                  className='btn btn-ghost'
-                  style={{ width: '100%', marginTop: '0.75rem' }}
-                  onClick={() => setShowForm('assignment')}
-                >
-                  + Add Assignment
-                </button>
-              )
-            }
-          </div>
-        )}
-
-        {/* TESTS */}
-        {tab === 'Tests' && (
-          <div>
-            <div className='card' style={{ padding: '0 1rem' }}>
-              {course.test_dates?.length === 0 && (
-                <p style={{
-                  padding: '1rem 0', textAlign: 'center',
-                  color: 'var(--text-faint)', fontSize: '0.875rem'
-                }}>
-                  No test dates yet
-                </p>
-              )}
-              {course.test_dates?.map(t => (
-                <div
-                  key={t.id}
-                  style={{
-                    padding: '0.85rem 0',
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    display: 'flex', justifyContent: 'space-between'
-                  }}
-                >
-                  <p style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t.title}</p>
-                  <p style={{ fontSize: '0.72rem', color: '#ef4444' }}>
-                    {new Date(t.test_date).toLocaleDateString('en-GB', {
-                      day: 'numeric', month: 'short', year: 'numeric'
-                    })}
-                  </p>
-                </div>
-              ))}
-            </div>
-            {showForm === 'test'
-              ? <AddTestForm
-                  courseId={id}
-                  onAdded={t => setCourse(c => ({ ...c, test_dates: [...(c.test_dates||[]), t] }))}
-                  onClose={() => setShowForm(null)}
-                />
-              : (
-                <button
-                  className='btn btn-ghost'
-                  style={{ width: '100%', marginTop: '0.75rem' }}
-                  onClick={() => setShowForm('test')}
-                >
-                  + Add Test Date
-                </button>
-              )
-            }
-          </div>
-        )}
-
-        {/* UPLOADS */}
-        {tab === 'Uploads' && (
-          <div>
-            {uploads.length === 0 && (
-              <div className='empty'>
-                <span className='empty-icon'>📄</span>
-                <h3>No uploads yet</h3>
-                <p>Upload notes or PDFs to use AI tools on this course</p>
-                <button
-                  className='btn btn-primary'
-                  onClick={() => navigate(`/upload?course_id=${id}`)}
-                >
-                  Upload Now
-                </button>
-              </div>
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {uploads.map(u => (
-                <div
-                  key={u.id}
-                  className='card'
-                  onClick={() => navigate(`/ai/${u.id}`)}
-                  style={{ cursor: 'pointer', display: 'flex', gap: '0.75rem', alignItems: 'center' }}
-                >
-                  <span style={{ fontSize: '1.4rem' }}>
-                    {u.file_type === 'pdf' ? '📄' : u.file_type === 'image' ? '🖼️' : '📝'}
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{
-                      fontSize: '0.875rem', fontWeight: 500,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                    }}>
-                      {u.file_name}
-                    </p>
-                    <p style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>
-                      {new Date(u.created_at).toLocaleDateString('en-GB')}
-                      {' · '}{u.file_size_kb}KB
-                    </p>
-                  </div>
-                  <span style={{ color: 'var(--green)', fontSize: '0.8rem', fontWeight: 600 }}>
-                    AI →
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* QUIZZES */}
-        {tab === 'Quizzes' && (
-          <div>
-            {quizzes.length === 0 && (
-              <div className='empty'>
-                <span className='empty-icon'>🧠</span>
-                <h3>No quizzes yet</h3>
-                <p>Upload notes then generate a quiz from the AI tools screen</p>
-              </div>
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {quizzes.map(q => (
-                <div
-                  key={q.id}
-                  className='card'
-                  onClick={() => navigate(`/quiz/${q.id}`)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div style={{
-                    display: 'flex', justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <p style={{ fontSize: '0.875rem', fontWeight: 600 }}>{q.title}</p>
-                    {q.score != null && (
-                      <span style={{
-                        fontSize: '0.875rem', fontWeight: 700,
-                        color: q.score >= 70 ? 'var(--green)' : q.score >= 50 ? '#f59e0b' : '#ef4444'
-                      }}>
-                        {q.score}%
-                      </span>
-                    )}
-                  </div>
-                  <p style={{ fontSize: '0.72rem', color: 'var(--text-faint)', marginTop: '0.3rem' }}>
-                    {q.total_questions} questions
-                    {q.attempted_at ? ` · Attempted ${new Date(q.attempted_at).toLocaleDateString('en-GB')}` : ' · Not attempted'}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+        {courses.length > 0 && (
+          <p style={{
+            textAlign: 'center', fontSize: '0.75rem',
+            color: 'var(--text-faint)', marginTop: '1rem'
+          }}>
+            {courses.length} course{courses.length !== 1 ? 's' : ''} · Tap to open
+          </p>
         )}
 
       </div>
+
+      {showAdd && (
+        <AddCourseSheet
+          onClose={() => setShowAdd(false)}
+          onSaved={onSaved}
+        />
+      )}
+
+      <BottomNav active='/syllabus' />
     </div>
   )
-}
+      }

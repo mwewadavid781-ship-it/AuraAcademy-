@@ -24,7 +24,7 @@ async function getUploadText(uploadId, userId) {
 // Helper: call Groq
 async function callGroq(systemPrompt, userPrompt) {
   const response = await groq.chat.completions.create({
-    model: 'llama3-70b-8192',
+    model: 'openai/gpt-oss-120b',
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
@@ -36,7 +36,6 @@ async function callGroq(systemPrompt, userPrompt) {
 }
 
 // ── POST /api/ai/simplify ──────────────────────────────
-// Turns hard content into clean bullet points
 router.post('/simplify', async (req, res) => {
   try {
     const { upload_id, text } = req.body
@@ -68,7 +67,6 @@ Format: start each point with •`
 })
 
 // ── POST /api/ai/explain ───────────────────────────────
-// Explains a topic using uploaded material first, then adds examples
 router.post('/explain', async (req, res) => {
   try {
     const { upload_id, topic, text } = req.body
@@ -102,7 +100,6 @@ Keep the tone warm and encouraging.`
 })
 
 // ── POST /api/ai/ask ───────────────────────────────────
-// Study tutor — answers questions grounded in uploaded material
 router.post('/ask', async (req, res) => {
   try {
     const { upload_id, question, history } = req.body
@@ -124,7 +121,6 @@ If the answer is not in the notes, say so clearly, then still help from your kno
 Be concise, accurate, and encouraging.
 Never make up facts.`
 
-    // Build conversation history for multi-turn chat
     const messages = [{ role: 'system', content: system }]
 
     if (content) {
@@ -138,7 +134,6 @@ Never make up facts.`
       })
     }
 
-    // Append prior chat history if provided
     if (history && Array.isArray(history)) {
       for (const msg of history.slice(-6)) {
         if (msg.role && msg.content) {
@@ -150,7 +145,7 @@ Never make up facts.`
     messages.push({ role: 'user', content: question })
 
     const response = await groq.chat.completions.create({
-      model: 'llama3-70b-8192',
+      model: 'openai/gpt-oss-120b',
       messages,
       temperature: 0.6,
       max_tokens: 1000
@@ -165,7 +160,6 @@ Never make up facts.`
 })
 
 // ── POST /api/ai/flashcards ────────────────────────────
-// Generates flashcard Q&A pairs from uploaded material
 router.post('/flashcards', async (req, res) => {
   try {
     const { upload_id, course_id, count } = req.body
@@ -199,7 +193,6 @@ ${upload.extracted_text.slice(0, 3500)}`
       return res.status(500).json({ error: 'Failed to parse flashcards' })
     }
 
-    // Save to DB
     const inserts = cards.map(c => ({
       user_id: req.user.id,
       course_id: upload.course_id || course_id,

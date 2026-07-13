@@ -71,7 +71,7 @@ Content:
 ${upload.extracted_text.slice(0, 3500)}`
 
     const response = await groq.chat.completions.create({
-      model: 'llama3-70b-8192',
+  model: 'openai/gpt-oss-120b',
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: prompt }

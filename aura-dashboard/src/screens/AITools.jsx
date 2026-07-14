@@ -173,8 +173,21 @@ function AskTool({ upload }) {
   const [question, setQuestion] = useState('')
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(false)
+  const [loadingHistory, setLoadingHistory] = useState(true)
   const [error, setError] = useState('')
   const bottomRef = useRef()
+
+  useEffect(() => {
+    async function loadHistory() {
+      try {
+        const data = await aiAPI.getChatHistory(upload.id)
+        setHistory(data.history || [])
+      } catch {} finally {
+        setLoadingHistory(false)
+      }
+    }
+    loadHistory()
+  }, [upload.id])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })

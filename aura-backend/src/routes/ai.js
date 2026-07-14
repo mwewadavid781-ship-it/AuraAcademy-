@@ -123,7 +123,8 @@ If the answer is not in the notes, say so clearly, then still help from your kno
 Be concise, accurate, and encouraging.
 Never make up facts.
 Do not use Markdown formatting — no #, ##, **, or | table symbols.
-Write in plain text. Use simple bullet points starting with • if you need a list.`
+Write in plain text. Use simple bullet points starting with • if you need a list.
+To emphasize a term, use CAPITALS or simply repeat it clearly in the sentence, never asterisks.`
 
     const messages = [{ role: 'system', content: system }]
 

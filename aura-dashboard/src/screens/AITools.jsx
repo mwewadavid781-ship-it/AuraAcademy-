@@ -220,7 +220,7 @@ function AskTool({ upload }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
 
-      {history.length === 0 && (
+     {!loadingHistory && history.length === 0 && (
         <div style={{
           background: 'var(--green-dim)',
           border: '1px solid var(--green-border)',

@@ -433,7 +433,7 @@ scene.add(atmoPts)
 
 // FINAL PASS SHADER
 const FinalShader={
-  uniforms:{iTime:{value:0},tDiffuse:{value:null},torusTexture:{value:null},bloomTexture:{value:null},haloTexture:{value:null},uBg:{value:hexToVec3(bgColor)},uFlameA:{value:hexToVec3(flameColor)},uFla[...]
+  uniforms:{iTime:{value:0},tDiffuse:{value:null},torusTexture:{value:null},bloomTexture:{value:null},haloTexture:{value:null},uBg:{value:hexToVec3(bgColor)},uFlameA:{value:hexToVec3(flameColor)},uFla...]
   vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position,1.0);}`,
   fragmentShader:`
 uniform float iTime;uniform sampler2D tDiffuse;uniform sampler2D bloomTexture;uniform sampler2D torusTexture;uniform sampler2D haloTexture;

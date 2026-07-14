@@ -64,6 +64,7 @@ export const aiAPI = {
   simplify: (body) => request('POST', '/api/ai/simplify', body),
   explain: (body) => request('POST', '/api/ai/explain', body),
   ask: (body) => request('POST', '/api/ai/ask', body),
+  getChatHistory: (upload_id) => request('GET', `/api/ai/chat/${upload_id}`),
   generateFlashcards: (body) => request('POST', '/api/ai/flashcards', body),
   getFlashcards: (course_id) => request('GET', `/api/ai/flashcards/${course_id}`)
 }

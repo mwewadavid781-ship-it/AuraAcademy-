@@ -122,6 +122,7 @@ function SimplifyTool({ upload }) {
 function ExplainTool({ upload }) {
   const [topic, setTopic] = useState('')
   const [result, setResult] = useState('')
+  const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -130,9 +131,11 @@ function ExplainTool({ upload }) {
     setLoading(true)
     setError('')
     setResult('')
+    setVideos([])
     try {
       const data = await aiAPI.explain({ upload_id: upload.id, topic })
       setResult(data.result)
+      setVideos(data.videos || [])
     } catch (err) {
       setError(err.locked
         ? 'Subscribe to use AI Explain.'
@@ -148,7 +151,7 @@ function ExplainTool({ upload }) {
         <label className='label'>What do you want explained?</label>
         <input
           className='input'
-          placeholder="e.g. Newton\'s second law, integration by parts..."
+          placeholder="e.g. Newton's second law, integration by parts..."
           value={topic}
           onChange={e => { setTopic(e.target.value); setError('') }}
           onKeyDown={e => e.key === 'Enter' && run()}
@@ -164,10 +167,56 @@ function ExplainTool({ upload }) {
       </div>
       {error && <div className='error-msg' style={{ marginBottom: '1rem' }}>{error}</div>}
       <ResultBox content={result} loading={loading} />
+
+      {videos.length > 0 && (
+        <div style={{ marginTop: '1rem' }}>
+          <p style={{
+            fontSize: '0.7rem', fontWeight: 700,
+            color: 'var(--text-faint)', textTransform: 'uppercase',
+            letterSpacing: '0.06em', marginBottom: '0.6rem'
+          }}>
+            📺 Watch a video explanation
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            {videos.map(v => (
+              <a
+                key={v.video_id}
+                href={`https://youtube.com/watch?v=${v.video_id}`}
+                target='_blank'
+                rel='noreferrer'
+                style={{
+                  display: 'flex', gap: '0.75rem',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--green-border)',
+                  borderRadius: 12, padding: '0.6rem',
+                  textDecoration: 'none', color: 'var(--text)'
+                }}
+              >
+                <img
+                  src={v.thumbnail}
+                  alt=''
+                  style={{ width: 80, height: 60, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+                />
+                <div style={{ minWidth: 0 }}>
+                  <p style={{
+                    fontSize: '0.8rem', fontWeight: 600,
+                    overflow: 'hidden', textOverflow: 'ellipsis',
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical'
+                  }}>
+                    {v.title}
+                  </p>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-faint)', marginTop: '0.2rem' }}>
+                    {v.channel}
+                  </p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
 // ── ASK (chat) ────────────────────────────────────────
 function AskTool({ upload }) {
   const [question, setQuestion] = useState('')

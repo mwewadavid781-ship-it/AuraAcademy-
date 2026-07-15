@@ -116,6 +116,60 @@ res.json({ result, videos, type: 'explain' })
   }
 })
 
+// Helper: normalize a topic string into a stable cache key
+function normalizeTopic(topic) {
+  return topic.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+// Helper: search YouTube once, cache forever
+async function getTopicVideos(topic) {
+  const key = normalizeTopic(topic)
+
+  // Check cache first — this is what makes 100 daily searches last
+  const { data: cached } = await supabase
+    .from('topic_videos')
+    .select('videos, search_count')
+    .eq('topic_key', key)
+    .single()
+
+  if (cached) {
+    // Bump the counter so we can see which topics are most reused
+    await supabase
+      .from('topic_videos')
+      .update({ search_count: cached.search_count + 1 })
+      .eq('topic_key', key)
+    return cached.videos
+  }
+
+  // Not cached — search YouTube for the first and only time
+  if (!process.env.YOUTUBE_API_KEY) return []
+
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=3&q=${encodeURIComponent(topic + ' explained')}&key=${process.env.YOUTUBE_API_KEY}`
+    const resp = await fetch(url)
+    const data = await resp.json()
+
+    if (!data.items) return []
+
+    const videos = data.items.map(item => ({
+      video_id: item.id.videoId,
+      title: item.snippet.title,
+      channel: item.snippet.channelTitle,
+      thumbnail: item.snippet.thumbnails?.medium?.url || ''
+    }))
+
+    // Save to cache — every future student asking this exact topic reuses this
+    await supabase
+      .from('topic_videos')
+      .insert({ topic_key: key, videos, search_count: 1 })
+
+    return videos
+  } catch (err) {
+    console.error('YouTube search error:', err)
+    return []
+  }
+}
+
 // ── GET /api/ai/chat/:upload_id ────────────────────────
 // Fetch saved chat history for this upload
 router.get('/chat/:upload_id', async (req, res) => {

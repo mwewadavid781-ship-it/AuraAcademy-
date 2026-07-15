@@ -101,15 +101,12 @@ Write in plain text with clear paragraph breaks.`
       ? `Using these notes:\n\n${content.slice(0, 3000)}\n\nExplain: "${topic}"`
       : `Explain this university topic clearly with examples: "${topic}"`
 
-    const result = await callGroq(system, prompt)
-    if (upload_id) {
-  await supabase.from('ai_chats').insert([
-    { user_id: req.user.id, upload_id, role: 'user', content: `Explain: ${topic}`, action_type: 'explain' },
-    { user_id: req.user.id, upload_id, role: 'assistant', content: result, action_type: 'explain' }
-  ])
-}
+    const [result, videos] = await Promise.all([
+      callGroq(system, prompt),
+      getTopicVideos(topic)
+    ])
 
-res.json({ result, videos, type: 'explain' })
+    res.json({ result, videos, type: 'explain' })
   } catch (err) {
     console.error('POST /ai/explain error:', err)
     res.status(500).json({ error: 'AI explain failed' })

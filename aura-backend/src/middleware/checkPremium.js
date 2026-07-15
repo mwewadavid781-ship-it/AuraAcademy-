@@ -24,12 +24,13 @@ async function checkPremium(req, res, next) {
     let isPremium = false
 
     // Check if in active trial period
-    if (user.subscription_status === 'trial') {
-      const trialEnd = new Date(
-        new Date(user.trial_start_date).getTime() + 7 * 24 * 60 * 60 * 1000
-      )
-      isPremium = now <= trialEnd
-    }
+if (user.subscription_status === 'trial') {
+        // ⚠️ TEMP TEST VALUE — trial shortened to ~5 min for testing, MUST revert to 7 before launch
+        const trialEnd = new Date(
+          new Date(user.trial_start_date).getTime() + 0.0035 * 24 * 60 * 60 * 1000
+        )
+        isPremium = now <= trialEnd
+}
 
     // Check if subscription is active
     if (user.subscription_status === 'active' && user.subscription_expiry) {

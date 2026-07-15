@@ -3,13 +3,14 @@ const router = express.Router()
 const { createClient } = require('@supabase/supabase-js')
 const multer = require('multer')
 const pdfParse = require('pdf-parse')
+const Groq = require('groq-sdk')
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 )
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
-// Multer — store in memory, max 10MB
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -29,7 +30,7 @@ const upload = multer({
   }
 })
 
-// Helper: extract text from buffer
+// Helper: extract text from a PDF or plain text buffer
 async function extractText(buffer, mimetype) {
   try {
     if (mimetype === 'application/pdf') {
@@ -39,10 +40,39 @@ async function extractText(buffer, mimetype) {
     if (mimetype === 'text/plain') {
       return buffer.toString('utf8').trim()
     }
-    // images — return placeholder; AI route handles vision later
-    return '[Image uploaded — use AI Explain to analyse this file]'
+    return ''
   } catch (err) {
     console.error('Text extraction error:', err)
+    return ''
+  }
+}
+
+// Helper: read an image's content using Groq's vision model
+async function extractImageText(publicUrl) {
+  try {
+    const response = await groq.chat.completions.create({
+      model: 'qwen/qwen3.6-27b',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'This is a photo of study notes or a textbook page for a university student. Transcribe all readable text exactly as it appears, including headings, bullet points, and any labeled diagrams or formulas. If there is a diagram, briefly describe what it shows after the transcribed text.'
+            },
+            {
+              type: 'image_url',
+              image_url: { url: publicUrl }
+            }
+          ]
+        }
+      ],
+      temperature: 0.2,
+      max_tokens: 2000
+    })
+    return response.choices[0]?.message?.content || ''
+  } catch (err) {
+    console.error('Image vision extraction error:', err)
     return ''
   }
 }
@@ -59,7 +89,6 @@ router.post('/', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file provided' })
     }
 
-    // Verify course belongs to user
     const { data: course } = await supabase
       .from('courses')
       .select('id')
@@ -75,7 +104,6 @@ router.post('/', upload.single('file'), async (req, res) => {
     const ext = file.originalname.split('.').pop()
     const storagePath = `${req.user.id}/${course_id}/${Date.now()}.${ext}`
 
-    // Upload to Supabase Storage bucket "uploads"
     const { error: storageError } = await supabase.storage
       .from('uploads')
       .upload(storagePath, file.buffer, {
@@ -85,15 +113,10 @@ router.post('/', upload.single('file'), async (req, res) => {
 
     if (storageError) throw storageError
 
-    // Get public URL
     const { data: urlData } = supabase.storage
       .from('uploads')
       .getPublicUrl(storagePath)
 
-    // Extract text
-    const extractedText = await extractText(file.buffer, file.mimetype)
-
-    // Determine file type label
     const typeMap = {
       'application/pdf': 'pdf',
       'text/plain': 'text',
@@ -101,8 +124,17 @@ router.post('/', upload.single('file'), async (req, res) => {
       'image/png': 'image',
       'image/webp': 'image'
     }
+    const fileTypeLabel = typeMap[file.mimetype] || 'text'
 
-    // Save record to DB
+    // Extract content depending on file type
+    let extractedText = ''
+    if (fileTypeLabel === 'image') {
+      // Images: read via Groq vision using the now-public storage URL
+      extractedText = await extractImageText(urlData.publicUrl)
+    } else {
+      extractedText = await extractText(file.buffer, file.mimetype)
+    }
+
     const { data: uploadRecord, error: dbError } = await supabase
       .from('uploads')
       .insert({
@@ -111,7 +143,7 @@ router.post('/', upload.single('file'), async (req, res) => {
         topic_id: topic_id || null,
         file_name: file.originalname,
         file_url: urlData.publicUrl,
-        file_type: typeMap[file.mimetype] || 'text',
+        file_type: fileTypeLabel,
         file_size_kb: Math.round(file.size / 1024),
         extracted_text: extractedText,
         processing_status: extractedText ? 'done' : 'pending'
@@ -138,7 +170,7 @@ router.post('/', upload.single('file'), async (req, res) => {
   }
 })
 
-// GET /api/uploads?course_id=xxx — list uploads for a course
+// GET /api/uploads?course_id=xxx
 router.get('/', async (req, res) => {
   try {
     const { course_id } = req.query
@@ -162,7 +194,7 @@ router.get('/', async (req, res) => {
   }
 })
 
-// GET /api/uploads/:id — get single upload with extracted text
+// GET /api/uploads/:id
 router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -196,13 +228,11 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Upload not found' })
     }
 
-    // Remove from storage
     const path = upload.file_url.split('/uploads/')[1]
     if (path) {
       await supabase.storage.from('uploads').remove([path])
     }
 
-    // Remove DB record
     await supabase
       .from('uploads')
       .delete()

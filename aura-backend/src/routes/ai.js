@@ -59,7 +59,15 @@ Format: start each point with •`
     const prompt = `Simplify this content into clear study bullet points:\n\n${content.slice(0, 4000)}`
 
     const result = await callGroq(system, prompt)
-    res.json({ result, type: 'simplify' })
+
+if (upload_id) {
+  await supabase.from('ai_chats').insert({
+    user_id: req.user.id, upload_id,
+    role: 'assistant', content: result, action_type: 'simplify'
+  })
+}
+
+res.json({ result, type: 'simplify' })
   } catch (err) {
     console.error('POST /ai/simplify error:', err)
     res.status(500).json({ error: 'AI simplify failed' })
@@ -94,7 +102,14 @@ Write in plain text with clear paragraph breaks.`
       : `Explain this university topic clearly with examples: "${topic}"`
 
     const result = await callGroq(system, prompt)
-    res.json({ result, type: 'explain' })
+    if (upload_id) {
+  await supabase.from('ai_chats').insert([
+    { user_id: req.user.id, upload_id, role: 'user', content: `Explain: ${topic}`, action_type: 'explain' },
+    { user_id: req.user.id, upload_id, role: 'assistant', content: result, action_type: 'explain' }
+  ])
+}
+
+res.json({ result, videos, type: 'explain' })
   } catch (err) {
     console.error('POST /ai/explain error:', err)
     res.status(500).json({ error: 'AI explain failed' })
@@ -180,9 +195,9 @@ To emphasize a term, use CAPITALS or simply repeat it clearly in the sentence, n
     // Save both sides of the conversation to the database
     if (upload_id) {
       await supabase.from('ai_chats').insert([
-        { user_id: req.user.id, upload_id, role: 'user', content: question },
-        { user_id: req.user.id, upload_id, role: 'assistant', content: result }
-      ])
+  { user_id: req.user.id, upload_id, role: 'user', content: question, action_type: 'ask' },
+  { user_id: req.user.id, upload_id, role: 'assistant', content: result, action_type: 'ask' }
+])
     }
 
     res.json({ result, type: 'ask' })
@@ -239,7 +254,15 @@ ${upload.extracted_text.slice(0, 3500)}`
       .select()
 
     if (error) throw error
-    res.json({ flashcards: data, count: data.length })
+
+await supabase.from('ai_chats').insert({
+  user_id: req.user.id, upload_id,
+  role: 'assistant',
+  content: `Generated ${data.length} flashcards from this file`,
+  action_type: 'flashcards'
+})
+
+res.json({ flashcards: data, count: data.length })
   } catch (err) {
     console.error('POST /ai/flashcards error:', err)
     res.status(500).json({ error: 'Flashcard generation failed' })

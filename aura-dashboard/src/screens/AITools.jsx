@@ -373,8 +373,20 @@ function AskTool({ upload }) {
 // ── QUIZ ──────────────────────────────────────────────
 function QuizTool({ upload, navigate }) {
   const [count, setCount] = useState(10)
+  const [topics, setTopics] = useState([])
+  const [selectedTopic, setSelectedTopic] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    async function loadTopics() {
+      try {
+        const data = await coursesAPI.get(upload.course_id)
+        setTopics(data.course.topics || [])
+      } catch {}
+    }
+    loadTopics()
+  }, [upload.course_id])
 
   async function generate() {
     setLoading(true)
@@ -383,6 +395,7 @@ function QuizTool({ upload, navigate }) {
       const data = await quizAPI.generate({
         upload_id: upload.id,
         course_id: upload.course_id,
+        topic_id: selectedTopic || null,
         count
       })
       navigate(`/quiz/${data.quiz.id}`)
@@ -403,10 +416,26 @@ function QuizTool({ upload, navigate }) {
         borderRadius: 12, padding: '1rem', marginBottom: '1.25rem'
       }}>
         <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.5 }}>
-          📝 Generates MCQ, True/False and Short Answer questions from your uploaded file.
-          After the quiz you get a readiness score.
+          📝 Generates quiz questions from your file. If you link it to a topic, your score updates that topic's progress bar.
         </p>
       </div>
+
+      {topics.length > 0 && (
+        <div style={{ marginBottom: '1.25rem' }}>
+          <label className='label'>Link to Topic (optional)</label>
+          <select
+            className='input'
+            value={selectedTopic}
+            onChange={e => setSelectedTopic(e.target.value)}
+            style={{ background: 'var(--surface)' }}
+          >
+            <option value=''>General practice — no topic link</option>
+            {topics.map(t => (
+              <option key={t.id} value={t.id}>{t.title}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div style={{ marginBottom: '1.25rem' }}>
         <label className='label'>Number of Questions</label>
@@ -420,8 +449,7 @@ function QuizTool({ upload, navigate }) {
                 color: count === n ? '#02160c' : 'var(--text-dim)',
                 border: `1px solid ${count === n ? 'var(--green)' : 'var(--green-border)'}`,
                 borderRadius: 8, padding: '0.5rem 1rem',
-                fontSize: '0.875rem', fontWeight: 600,
-                cursor: 'pointer'
+                fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer'
               }}
             >
               {n}

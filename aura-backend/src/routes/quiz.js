@@ -160,7 +160,6 @@ router.get('/:id', async (req, res) => {
 router.post('/:id/submit', async (req, res) => {
   try {
     const { answers } = req.body
-    // answers: [{ question_index: 0, answer: "A. ..." }]
 
     if (!answers || !Array.isArray(answers)) {
       return res.status(400).json({ error: 'answers array is required' })
@@ -207,6 +206,23 @@ router.post('/:id/submit', async (req, res) => {
       .eq('id', req.params.id)
       .eq('user_id', req.user.id)
 
+    // ── NEW: if this quiz is linked to a topic, update that topic's progress ──
+    if (quiz.topic_id) {
+      const { data: topicRow } = await supabase
+        .from('topics')
+        .select('progress_percent')
+        .eq('id', quiz.topic_id)
+        .single()
+
+      if (topicRow) {
+        const newProgress = Math.max(topicRow.progress_percent, score)
+        await supabase
+          .from('topics')
+          .update({ progress_percent: newProgress })
+          .eq('id', quiz.topic_id)
+      }
+    }
+
     // Readiness label
     let readiness = 'Needs Work'
     if (score >= 80) readiness = 'Exam Ready'
@@ -218,7 +234,8 @@ router.post('/:id/submit', async (req, res) => {
       correct,
       total: questions.length,
       readiness,
-      results
+      results,
+      topic_updated: !!quiz.topic_id
     })
   } catch (err) {
     console.error('POST /quiz/:id/submit error:', err)

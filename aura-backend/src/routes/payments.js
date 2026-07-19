@@ -1,221 +1,204 @@
 const express = require('express')
 const router = express.Router()
 const { createClient } = require('@supabase/supabase-js')
-const { v4: uuidv4 } = require('uuid')
+const requireAuth = require('../middleware/auth')
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 )
 
-// ── POST /api/payments/initiate ────────────────────────
-// Frontend calls this to start a payment
-router.post('/initiate', async (req, res) => {
+const WEEKLY_AMOUNT = 10.00
+const MOMO_NUMBER = '0964969767'
+
+// ── GET /api/payments/status — check subscription ──────
+router.get('/status', requireAuth, async (req, res) => {
   try {
-    const { phone_number, amount, plan_type } = req.body
-    const token = req.headers.authorization?.split(' ')[1]
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('subscription_status, subscription_expiry, trial_start_date')
+      .eq('id', req.user.id)
+      .single()
 
-    if (!token) {
-      return res.status(401).json({ error: 'Unauthorized' })
+    if (error || !user) {
+      return res.status(404).json({ error: 'User not found' })
     }
 
-    if (!phone_number || !amount || !plan_type) {
-      return res.status(400).json({
-        error: 'phone_number, amount, and plan_type are required'
-      })
-    }
+    const now = new Date()
+    const trialEnd = new Date(
+      new Date(user.trial_start_date).getTime() + 7 * 24 * 60 * 60 * 1000
+    )
+    const trialDaysLeft = Math.max(
+      0,
+      Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24))
+    )
 
-    // Verify user from token
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token)
-    if (authErr || !user) {
-      return res.status(401).json({ error: 'Invalid token' })
-    }
+    let isLocked = false
+    if (user.subscription_status === 'expired') isLocked = true
+    if (user.subscription_status === 'trial' && now > trialEnd) isLocked = true
+    if (
+      user.subscription_status === 'active' &&
+      new Date(user.subscription_expiry) < now
+    ) isLocked = true
 
-    // Validate plan
-    const validPlans = {
-      monthly: 50,      // ZMW
-      quarterly: 120,   // ZMW
-      annual: 400       // ZMW
-    }
-
-    if (!validPlans[plan_type] || validPlans[plan_type] !== amount) {
-      return res.status(400).json({ error: 'Invalid amount for plan' })
-    }
-
-    // Create payment record in DB (pending)
-    const paymentId = uuidv4()
-    const { error: payErr } = await supabase
-      .from('payments')
-      .insert({
-        id: paymentId,
-        user_id: user.id,
-        phone_number,
-        amount,
-        plan_type,
-        status: 'pending',
-        mtn_reference: null
-      })
-
-    if (payErr) throw payErr
-
-    // TODO: Call MTN MoMo API to initiate payment
-    // This is a placeholder — integrate actual MTN MoMo SDK/API
-    const mtnReference = `MTN-${Date.now()}-${paymentId.slice(0, 8)}`
-
-    res.status(201).json({
-      payment_id: paymentId,
-      mtn_reference: mtnReference,
-      message: 'Payment initiated. Please confirm on your phone.'
+    res.json({
+      status: user.subscription_status,
+      subscription_expiry: user.subscription_expiry,
+      trial_end: trialEnd.toISOString(),
+      trial_days_left: trialDaysLeft,
+      is_locked: isLocked,
+      momo_number: MOMO_NUMBER,
+      weekly_amount: WEEKLY_AMOUNT
     })
   } catch (err) {
-    console.error('POST /payments/initiate error:', err)
-    res.status(500).json({ error: 'Payment initiation failed' })
+    console.error('GET /payments/status error:', err)
+    res.status(500).json({ error: 'Failed to fetch status' })
   }
 })
 
-// ── POST /api/payments/webhook ─────────────────────────
-// MTN MoMo calls this to confirm payment (webhook)
-router.post('/webhook', async (req, res) => {
+// ── POST /api/payments/initiate ────────────────────────
+router.post('/initiate', requireAuth, async (req, res) => {
   try {
-    const { reference, status, user_id, amount, plan_type } = req.body
+    const { momo_ref, momo_number } = req.body
 
-    if (!reference || !status) {
-      return res.status(400).json({ error: 'reference and status required' })
+    if (!momo_ref) {
+      return res.status(400).json({
+        error: 'momo_ref (your MoMo transaction ID) is required'
+      })
     }
 
-    // Verify webhook came from MTN (in production, check signature)
-    // For now, just process it
+    const { data: existing } = await supabase
+      .from('payments')
+      .select('id, status')
+      .eq('momo_ref', momo_ref)
+      .single()
 
-    if (status === 'success') {
-      // Find payment by reference
-      const { data: payment, error: payErr } = await supabase
-        .from('payments')
-        .select('id, user_id')
-        .eq('mtn_reference', reference)
-        .single()
-
-      if (payErr || !payment) {
-        return res.status(404).json({ error: 'Payment not found' })
+    if (existing) {
+      if (existing.status === 'success') {
+        return res.status(400).json({ error: 'This transaction was already used' })
       }
-
-      // Update payment status
-      await supabase
-        .from('payments')
-        .update({ status: 'completed' })
-        .eq('id', payment.id)
-
-      // Calculate subscription expiry based on plan
-      const now = new Date()
-      let expiryDate = new Date(now)
-
-      const planDuration = {
-        monthly: 30,
-        quarterly: 90,
-        annual: 365
-      }
-
-      if (planDuration[plan_type]) {
-        expiryDate.setDate(expiryDate.getDate() + planDuration[plan_type])
-      }
-
-      // Update user subscription
-      const { error: subErr } = await supabase
-        .from('users')
-        .update({
-          subscription_status: 'active',
-          subscription_expiry: expiryDate.toISOString(),
-          subscription_plan: plan_type
-        })
-        .eq('id', payment.user_id)
-
-      if (subErr) throw subErr
-
-      res.json({ success: true, message: 'Payment confirmed and subscription activated' })
-    } else if (status === 'failed') {
-      // Update payment to failed
-      const { data: payment } = await supabase
-        .from('payments')
-        .select('id')
-        .eq('mtn_reference', reference)
-        .single()
-
-      if (payment) {
-        await supabase
-          .from('payments')
-          .update({ status: 'failed' })
-          .eq('id', payment.id)
-      }
-
-      res.json({ success: false, message: 'Payment failed' })
-    } else {
-      res.json({ success: false, message: 'Unknown status' })
-    }
-  } catch (err) {
-    console.error('POST /payments/webhook error:', err)
-    res.status(500).json({ error: 'Webhook processing failed' })
-  }
-})
-
-// ── GET /api/payments/status/:payment_id ───────────────
-// Check payment status
-router.get('/status/:payment_id', async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(' ')[1]
-
-    if (!token) {
-      return res.status(401).json({ error: 'Unauthorized' })
-    }
-
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token)
-    if (authErr || !user) {
-      return res.status(401).json({ error: 'Invalid token' })
+      return res.status(400).json({ error: 'This reference is already submitted' })
     }
 
     const { data: payment, error } = await supabase
       .from('payments')
-      .select('*')
-      .eq('id', req.params.payment_id)
-      .eq('user_id', user.id)
+      .insert({
+        user_id: req.user.id,
+        amount: WEEKLY_AMOUNT,
+        currency: 'ZMW',
+        momo_ref,
+        momo_number: momo_number || MOMO_NUMBER,
+        status: 'pending'
+      })
+      .select()
       .single()
 
-    if (error || !payment) {
+    if (error) throw error
+
+    res.status(201).json({
+      payment,
+      message: 'Payment submitted. Your account will be activated within minutes after verification.'
+    })
+  } catch (err) {
+    console.error('POST /payments/initiate error:', err)
+    res.status(500).json({ error: 'Failed to submit payment' })
+  }
+})
+
+// ── POST /api/payments/verify (admin only) ─────────────
+router.post('/verify', async (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key']
+    if (adminKey !== process.env.ADMIN_SECRET) {
+      return res.status(403).json({ error: 'Forbidden' })
+    }
+
+    const { payment_id } = req.body
+    if (!payment_id) {
+      return res.status(400).json({ error: 'payment_id is required' })
+    }
+
+    const { data: payment, error: payErr } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('id', payment_id)
+      .single()
+
+    if (payErr || !payment) {
       return res.status(404).json({ error: 'Payment not found' })
     }
 
-    res.json({ payment })
+    if (payment.status === 'success') {
+      return res.status(400).json({ error: 'Already verified' })
+    }
+
+    await supabase
+      .from('payments')
+      .update({
+        status: 'success',
+        verified_at: new Date().toISOString()
+      })
+      .eq('id', payment_id)
+
+    const expiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+    await supabase
+      .from('users')
+      .update({
+        subscription_status: 'active',
+        subscription_expiry: expiry.toISOString()
+      })
+      .eq('id', payment.user_id)
+
+    res.json({
+      message: 'Payment verified. Subscription activated.',
+      expiry: expiry.toISOString()
+    })
   } catch (err) {
-    console.error('GET /payments/status error:', err)
-    res.status(500).json({ error: 'Failed to fetch payment status' })
+    console.error('POST /payments/verify error:', err)
+    res.status(500).json({ error: 'Verification failed' })
   }
 })
 
 // ── GET /api/payments/history ──────────────────────────
-// Get user's payment history
-router.get('/history', async (req, res) => {
+router.get('/history', requireAuth, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1]
-
-    if (!token) {
-      return res.status(401).json({ error: 'Unauthorized' })
-    }
-
-    const { data: { user }, error: authErr } = await supabase.auth.getUser(token)
-    if (authErr || !user) {
-      return res.status(401).json({ error: 'Invalid token' })
-    }
-
-    const { data: payments, error } = await supabase
+    const { data, error } = await supabase
       .from('payments')
-      .select('*')
-      .eq('user_id', user.id)
+      .select('id, amount, currency, momo_ref, status, verified_at, created_at')
+      .eq('user_id', req.user.id)
       .order('created_at', { ascending: false })
 
     if (error) throw error
-
-    res.json({ payments })
+    res.json({ payments: data })
   } catch (err) {
     console.error('GET /payments/history error:', err)
-    res.status(500).json({ error: 'Failed to fetch payment history' })
+    res.status(500).json({ error: 'Failed to fetch history' })
+  }
+})
+
+// ── GET /api/payments/pending (admin only) ─────────────
+router.get('/pending', async (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key']
+    if (adminKey !== process.env.ADMIN_SECRET) {
+      return res.status(403).json({ error: 'Forbidden' })
+    }
+
+    const { data, error } = await supabase
+      .from('payments')
+      .select(`
+        id, amount, momo_ref, momo_number,
+        status, created_at,
+        users(full_name, email)
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+
+    if (error) throw error
+    res.json({ pending: data })
+  } catch (err) {
+    console.error('GET /payments/pending error:', err)
+    res.status(500).json({ error: 'Failed to fetch pending payments' })
   }
 })
 

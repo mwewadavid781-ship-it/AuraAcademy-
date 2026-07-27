@@ -9,7 +9,6 @@ const supabase = createClient(
 )
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
-// Helper: fetch upload text and verify ownership
 async function getUploadText(uploadId, userId) {
   const { data, error } = await supabase
     .from('uploads')
@@ -21,7 +20,6 @@ async function getUploadText(uploadId, userId) {
   return data
 }
 
-// Helper: call Groq
 async function callGroq(systemPrompt, userPrompt) {
   const response = await groq.chat.completions.create({
     model: 'openai/gpt-oss-120b',
@@ -33,6 +31,54 @@ async function callGroq(systemPrompt, userPrompt) {
     max_tokens: 1500
   })
   return response.choices[0]?.message?.content || ''
+}
+
+function normalizeTopic(topic) {
+  return topic.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+async function getTopicVideos(topic) {
+  const key = normalizeTopic(topic)
+
+  const { data: cached } = await supabase
+    .from('topic_videos')
+    .select('videos, search_count')
+    .eq('topic_key', key)
+    .single()
+
+  if (cached) {
+    await supabase
+      .from('topic_videos')
+      .update({ search_count: cached.search_count + 1 })
+      .eq('topic_key', key)
+    return cached.videos
+  }
+
+  if (!process.env.YOUTUBE_API_KEY) return []
+
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=3&q=${encodeURIComponent(topic + ' explained')}&key=${process.env.YOUTUBE_API_KEY}`
+    const resp = await fetch(url)
+    const data = await resp.json()
+
+    if (!data.items) return []
+
+    const videos = data.items.map(item => ({
+      video_id: item.id.videoId,
+      title: item.snippet.title,
+      channel: item.snippet.channelTitle,
+      thumbnail: item.snippet.thumbnails?.medium?.url || ''
+    }))
+
+    await supabase
+      .from('topic_videos')
+      .insert({ topic_key: key, videos, search_count: 1 })
+
+    return videos
+  } catch (err) {
+    console.error('YouTube search error:', err)
+    return []
+  }
 }
 
 // ── POST /api/ai/simplify ──────────────────────────────
@@ -56,18 +102,19 @@ Your job is to simplify complex academic content into easy, clear bullet points.
 Use simple English. Keep each bullet under 2 sentences.
 Format: start each point with •`
 
-    const prompt = `Simplify this content into clear study bullet points:\n\n${content.slice(0, 4000)}`
+    // ⬆️ increased from 4000 — covers most full lecture notes/chapters now
+    const prompt = `Simplify this content into clear study bullet points:\n\n${content.slice(0, 20000)}`
 
     const result = await callGroq(system, prompt)
 
-if (upload_id) {
-  await supabase.from('ai_chats').insert({
-    user_id: req.user.id, upload_id,
-    role: 'assistant', content: result, action_type: 'simplify'
-  })
-}
+    if (upload_id) {
+      await supabase.from('ai_chats').insert({
+        user_id: req.user.id, upload_id,
+        role: 'assistant', content: result, action_type: 'simplify'
+      })
+    }
 
-res.json({ result, type: 'simplify' })
+    res.json({ result, type: 'simplify' })
   } catch (err) {
     console.error('POST /ai/simplify error:', err)
     res.status(500).json({ error: 'AI simplify failed' })
@@ -97,14 +144,22 @@ Keep the tone warm and encouraging.
 Do not use Markdown formatting — no #, ##, **, or | table symbols.
 Write in plain text with clear paragraph breaks.`
 
+    // ⬆️ increased from 3000
     const prompt = content
-      ? `Using these notes:\n\n${content.slice(0, 3000)}\n\nExplain: "${topic}"`
+      ? `Using these notes:\n\n${content.slice(0, 15000)}\n\nExplain: "${topic}"`
       : `Explain this university topic clearly with examples: "${topic}"`
 
     const [result, videos] = await Promise.all([
       callGroq(system, prompt),
       getTopicVideos(topic)
     ])
+
+    if (upload_id) {
+      await supabase.from('ai_chats').insert([
+        { user_id: req.user.id, upload_id, role: 'user', content: `Explain: ${topic}`, action_type: 'explain' },
+        { user_id: req.user.id, upload_id, role: 'assistant', content: result, action_type: 'explain' }
+      ])
+    }
 
     res.json({ result, videos, type: 'explain' })
   } catch (err) {
@@ -113,67 +168,12 @@ Write in plain text with clear paragraph breaks.`
   }
 })
 
-// Helper: normalize a topic string into a stable cache key
-function normalizeTopic(topic) {
-  return topic.trim().toLowerCase().replace(/\s+/g, ' ')
-}
-
-// Helper: search YouTube once, cache forever
-async function getTopicVideos(topic) {
-  const key = normalizeTopic(topic)
-
-  // Check cache first — this is what makes 100 daily searches last
-  const { data: cached } = await supabase
-    .from('topic_videos')
-    .select('videos, search_count')
-    .eq('topic_key', key)
-    .single()
-
-  if (cached) {
-    // Bump the counter so we can see which topics are most reused
-    await supabase
-      .from('topic_videos')
-      .update({ search_count: cached.search_count + 1 })
-      .eq('topic_key', key)
-    return cached.videos
-  }
-
-  // Not cached — search YouTube for the first and only time
-  if (!process.env.YOUTUBE_API_KEY) return []
-
-  try {
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=3&q=${encodeURIComponent(topic + ' explained')}&key=${process.env.YOUTUBE_API_KEY}`
-    const resp = await fetch(url)
-    const data = await resp.json()
-
-    if (!data.items) return []
-
-    const videos = data.items.map(item => ({
-      video_id: item.id.videoId,
-      title: item.snippet.title,
-      channel: item.snippet.channelTitle,
-      thumbnail: item.snippet.thumbnails?.medium?.url || ''
-    }))
-
-    // Save to cache — every future student asking this exact topic reuses this
-    await supabase
-      .from('topic_videos')
-      .insert({ topic_key: key, videos, search_count: 1 })
-
-    return videos
-  } catch (err) {
-    console.error('YouTube search error:', err)
-    return []
-  }
-}
-
 // ── GET /api/ai/chat/:upload_id ────────────────────────
-// Fetch saved chat history for this upload
 router.get('/chat/:upload_id', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('ai_chats')
-      .select('role, content, created_at')
+      .select('role, content, action_type, created_at')
       .eq('upload_id', req.params.upload_id)
       .eq('user_id', req.user.id)
       .order('created_at', { ascending: true })
@@ -214,9 +214,10 @@ To emphasize a term, use CAPITALS or simply repeat it clearly in the sentence, n
     const messages = [{ role: 'system', content: system }]
 
     if (content) {
+      // ⬆️ increased from 2500
       messages.push({
         role: 'user',
-        content: `My notes for context:\n\n${content.slice(0, 2500)}`
+        content: `My notes for context:\n\n${content.slice(0, 15000)}`
       })
       messages.push({
         role: 'assistant',
@@ -243,12 +244,11 @@ To emphasize a term, use CAPITALS or simply repeat it clearly in the sentence, n
 
     const result = response.choices[0]?.message?.content || ''
 
-    // Save both sides of the conversation to the database
     if (upload_id) {
       await supabase.from('ai_chats').insert([
-  { user_id: req.user.id, upload_id, role: 'user', content: question, action_type: 'ask' },
-  { user_id: req.user.id, upload_id, role: 'assistant', content: result, action_type: 'ask' }
-])
+        { user_id: req.user.id, upload_id, role: 'user', content: question, action_type: 'ask' },
+        { user_id: req.user.id, upload_id, role: 'assistant', content: result, action_type: 'ask' }
+      ])
     }
 
     res.json({ result, type: 'ask' })
@@ -276,11 +276,12 @@ router.post('/flashcards', async (req, res) => {
 Return ONLY valid JSON. No explanation, no markdown, no backticks.
 Format: [{"question":"...","answer":"..."}]`
 
+    // ⬆️ increased from 3500
     const prompt = `Generate ${numCards} flashcards from this content.
 Each answer should be 1-2 sentences max.
 
 Content:
-${upload.extracted_text.slice(0, 3500)}`
+${upload.extracted_text.slice(0, 20000)}`
 
     const raw = await callGroq(system, prompt)
 
@@ -306,14 +307,14 @@ ${upload.extracted_text.slice(0, 3500)}`
 
     if (error) throw error
 
-await supabase.from('ai_chats').insert({
-  user_id: req.user.id, upload_id,
-  role: 'assistant',
-  content: `Generated ${data.length} flashcards from this file`,
-  action_type: 'flashcards'
-})
+    await supabase.from('ai_chats').insert({
+      user_id: req.user.id, upload_id,
+      role: 'assistant',
+      content: `Generated ${data.length} flashcards from this file`,
+      action_type: 'flashcards'
+    })
 
-res.json({ flashcards: data, count: data.length })
+    res.json({ flashcards: data, count: data.length })
   } catch (err) {
     console.error('POST /ai/flashcards error:', err)
     res.status(500).json({ error: 'Flashcard generation failed' })

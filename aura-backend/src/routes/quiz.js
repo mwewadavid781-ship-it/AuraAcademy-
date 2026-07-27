@@ -68,7 +68,7 @@ Format exactly:
 Mix the types: roughly 50% MCQ, 25% true/false, 25% short answer.
 
 Content:
-${upload.extracted_text.slice(0, 3500)}`
+${upload.extracted_text.slice(0, 20000)}`
 
     const response = await groq.chat.completions.create({
   model: 'openai/gpt-oss-120b',

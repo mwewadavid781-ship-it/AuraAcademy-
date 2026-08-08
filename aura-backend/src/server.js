@@ -72,7 +72,7 @@ app.use('/api/uploads',   requireAuth, uploadRoutes)
 app.use('/api/groups',    requireAuth, groupRoutes)
 
 // ── Premium-only routes (auth + subscription check) ──
-app.use('/api/ai',   requireAuth, checkPremium, aiRoutes)
+app.use('/api/ai',   requireAuth, aiRoutes)
 app.use('/api/quiz', requireAuth, checkPremium, quizRoutes)
 
 // ── 404 handler ──

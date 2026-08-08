@@ -123,7 +123,9 @@ Format: start each point with •`
 })
 
 // ── POST /api/ai/explain ───────────────────────────────
-router.post('/explain', async (req, res) => {
+// Explain — now gated
+router.post('/explain', checkPremium, async (req, res) => {
+  // ...unchanged
   try {
     const { upload_id, topic, text } = req.body
     let content = text || ''
@@ -188,7 +190,9 @@ router.get('/chat/:upload_id', async (req, res) => {
 })
 
 // ── POST /api/ai/ask ───────────────────────────────────
-router.post('/ask', async (req, res) => {
+// Ask — now gated
+router.post('/ask', checkPremium, async (req, res) => {
+  // ...unchanged
   try {
     const { upload_id, question, history } = req.body
 
@@ -260,7 +264,9 @@ To emphasize a term, use CAPITALS or simply repeat it clearly in the sentence, n
 })
 
 // ── POST /api/ai/flashcards ────────────────────────────
-router.post('/flashcards', async (req, res) => {
+// Flashcards — now gated
+router.post('/flashcards', checkPremium, async (req, res) => {
+  // ...unchanged
   try {
     const { upload_id, course_id, count } = req.body
 

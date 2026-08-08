@@ -243,6 +243,102 @@ router.post('/:id/submit', async (req, res) => {
   }
 })
 
+// ── POST /api/quiz/:id/retest-weak ─────────────────────
+// Generates a focused mini-quiz on topics the student got wrong
+router.post('/:id/retest-weak', async (req, res) => {
+  try {
+    const { wrong_questions } = req.body
+
+    if (!wrong_questions || !Array.isArray(wrong_questions) || wrong_questions.length === 0) {
+      return res.status(400).json({ error: 'wrong_questions array is required' })
+    }
+
+    const { data: quiz, error: quizErr } = await supabase
+      .from('quizzes')
+      .select('upload_id, course_id, topic_id')
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .single()
+
+    if (quizErr || !quiz) {
+      return res.status(404).json({ error: 'Original quiz not found' })
+    }
+
+    const { data: upload, error: upErr } = await supabase
+      .from('uploads')
+      .select('extracted_text, file_name')
+      .eq('id', quiz.upload_id)
+      .eq('user_id', req.user.id)
+      .single()
+
+    if (upErr || !upload) {
+      return res.status(404).json({ error: 'Original upload not found' })
+    }
+
+    const weakList = wrong_questions.map((q, i) => `${i + 1}. ${q}`).join('\n')
+
+    const system = `You are a university exam question generator specializing in targeted revision.
+Return ONLY valid JSON array. No markdown, no backticks, no explanation.
+Format exactly:
+[
+  {
+    "type": "mcq",
+    "question": "...",
+    "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
+    "answer": "A. ...",
+    "explanation": "..."
+  }
+]`
+
+    const prompt = `A student got these questions wrong on a previous quiz:
+${weakList}
+
+Using the course content below, generate 5 NEW questions that test the same underlying concepts these wrong answers reveal weakness in — different wording, same topics, so the student can practice until it sticks. Mostly MCQ.
+
+Content:
+${upload.extracted_text.slice(0, 20000)}`
+
+    const response = await groq.chat.completions.create({
+      model: 'openai/gpt-oss-120b',
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.5,
+      max_tokens: 1500
+    })
+
+    const raw = response.choices[0]?.message?.content || ''
+    let questions = []
+    try {
+      const clean = raw.replace(/```json|```/g, '').trim()
+      questions = JSON.parse(clean)
+    } catch {
+      return res.status(500).json({ error: 'Failed to generate focused quiz' })
+    }
+
+    const { data: newQuiz, error: newQuizErr } = await supabase
+      .from('quizzes')
+      .insert({
+        user_id: req.user.id,
+        course_id: quiz.course_id,
+        upload_id: quiz.upload_id,
+        topic_id: quiz.topic_id,
+        title: `Focus Quiz — ${upload.file_name}`,
+        questions,
+        total_questions: questions.length
+      })
+      .select()
+      .single()
+
+    if (newQuizErr) throw newQuizErr
+    res.status(201).json({ quiz: newQuiz })
+  } catch (err) {
+    console.error('POST /quiz/:id/retest-weak error:', err)
+    res.status(500).json({ error: 'Failed to generate weak-area quiz' })
+  }
+})
+
 // ── GET /api/quiz/progress/:course_id ─────────────────
 // Returns average score and readiness per course
 router.get('/progress/:course_id', async (req, res) => {

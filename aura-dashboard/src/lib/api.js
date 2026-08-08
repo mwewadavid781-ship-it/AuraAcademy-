@@ -77,6 +77,14 @@ export const quizAPI = {
   submit: (id, answers) => request('POST', `/api/quiz/${id}/submit`, { answers }),
   progress: (course_id) => request('GET', `/api/quiz/progress/${course_id}`)
 }
+export const quizAPI = {
+  generate: (body) => request('POST', '/api/quiz/generate', body),
+  list: (course_id) => request('GET', `/api/quiz${course_id ? `?course_id=${course_id}` : ''}`),
+  get: (id) => request('GET', `/api/quiz/${id}`),
+  submit: (id, answers) => request('POST', `/api/quiz/${id}/submit`, { answers }),
+  retestWeak: (id, wrong_questions) => request('POST', `/api/quiz/${id}/retest-weak`, { wrong_questions }),
+  progress: (course_id) => request('GET', `/api/quiz/progress/${course_id}`)
+}
 
 // ── Groups ─────────────────────────────────────────────
 export const groupsAPI = {

@@ -170,6 +170,8 @@ function ResultScreen({ results, score, total, readiness, onRetry, navigate, onF
     'Needs Work': '⚠️'
   }
 
+  const hasWrongAnswers = results.some(r => !r.is_correct)
+
   return (
     <div style={{ padding: '1.25rem' }}>
 
@@ -211,36 +213,37 @@ function ResultScreen({ results, score, total, readiness, onRetry, navigate, onF
       </div>
 
       {/* Actions */}
-<div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
-  <button
-    className='btn btn-ghost'
-    style={{ flex: 1 }}
-    onClick={() => navigate(-1)}
-  >
-    ← Back
-  </button>
-  <button
-    className='btn btn-primary'
-    style={{ flex: 1 }}
-    onClick={onRetry}
-  >
-    Try Again
-  </button>
-</div>
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: hasWrongAnswers ? '0.75rem' : '1.5rem' }}>
+        <button
+          className='btn btn-ghost'
+          style={{ flex: 1 }}
+          onClick={() => navigate(-1)}
+        >
+          ← Back
+        </button>
+        <button
+          className='btn btn-primary'
+          style={{ flex: 1 }}
+          onClick={onRetry}
+        >
+          Try Again
+        </button>
+      </div>
 
-{results.some(r => !r.is_correct) && onFocusWeak && (
-  <button
-    className='btn btn-primary'
-    style={{
-      width: '100%', padding: '0.85rem', marginBottom: '1.5rem',
-      background: '#f59e0b', color: '#02160c'
-    }}
-    onClick={onFocusWeak}
-    disabled={focusLoading}
-  >
-    {focusLoading ? 'Building your focus quiz...' : '🎯 Practice My Weak Areas'}
-  </button>
-)}
+      {/* Focus on weak areas */}
+      {hasWrongAnswers && onFocusWeak && (
+        <button
+          className='btn btn-primary'
+          style={{
+            width: '100%', padding: '0.85rem', marginBottom: '1.5rem',
+            background: '#f59e0b', color: '#02160c'
+          }}
+          onClick={onFocusWeak}
+          disabled={focusLoading}
+        >
+          {focusLoading ? 'Building your focus quiz...' : '🎯 Practice My Weak Areas'}
+        </button>
+      )}
 
       {/* Question review */}
       <p style={{
@@ -319,6 +322,7 @@ export default function QuizScreen() {
   const [readiness, setReadiness] = useState('')
   const [error, setError] = useState('')
   const [timeElapsed, setTimeElapsed] = useState(0)
+  const [focusLoading, setFocusLoading] = useState(false)
   const timerRef = useRef()
 
   useEffect(() => {
@@ -327,7 +331,6 @@ export default function QuizScreen() {
         const data = await quizAPI.get(id)
         setQuiz(data.quiz)
 
-        // If already attempted show results
         if (data.quiz.score != null) {
           setScore(data.quiz.score)
         }
@@ -340,7 +343,6 @@ export default function QuizScreen() {
     load()
   }, [id])
 
-  // Timer
   useEffect(() => {
     if (!quiz || results) return
     timerRef.current = setInterval(() => {
@@ -373,6 +375,20 @@ export default function QuizScreen() {
     }
   }
 
+  async function onFocusWeak() {
+    const wrongQs = results.filter(r => !r.is_correct).map(r => r.question)
+    setFocusLoading(true)
+    setError('')
+    try {
+      const data = await quizAPI.retestWeak(id, wrongQs)
+      navigate(`/quiz/${data.quiz.id}`)
+    } catch (err) {
+      setError(err.message || 'Failed to build focus quiz')
+    } finally {
+      setFocusLoading(false)
+    }
+  }
+
   function onRetry() {
     setAnswers({})
     setCurrent(0)
@@ -397,7 +413,7 @@ export default function QuizScreen() {
     </div>
   )
 
-  if (error) return (
+  if (error && !quiz) return (
     <div className='screen' style={{ padding: '2rem 1.25rem' }}>
       <div className='error-msg'>{error}</div>
       <button
@@ -415,7 +431,6 @@ export default function QuizScreen() {
   const allAnswered = answeredCount === questions.length
   const q = questions[current]
 
-  // Show results screen
   if (results) {
     return (
       <div className='screen'>
@@ -439,6 +454,11 @@ export default function QuizScreen() {
             ⏱ {formatTime(timeElapsed)}
           </span>
         </div>
+        {error && (
+          <div style={{ padding: '0.75rem 1.25rem 0' }}>
+            <div className='error-msg'>{error}</div>
+          </div>
+        )}
         <ResultScreen
           results={results}
           score={score}
@@ -446,6 +466,8 @@ export default function QuizScreen() {
           readiness={readiness}
           onRetry={onRetry}
           navigate={navigate}
+          onFocusWeak={onFocusWeak}
+          focusLoading={focusLoading}
         />
       </div>
     )
@@ -608,11 +630,11 @@ export default function QuizScreen() {
           )}
         </div>
 
-        {error && (
+        {error && !results && (
           <div className='error-msg' style={{ margin: 0 }}>{error}</div>
         )}
       </div>
 
     </div>
   )
-}
+          }

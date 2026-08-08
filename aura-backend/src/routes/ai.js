@@ -1,4 +1,5 @@
 const express = require('express')
+const checkPremium = require('../middleware/checkPremium')
 const router = express.Router()
 const { createClient } = require('@supabase/supabase-js')
 const Groq = require('groq-sdk')

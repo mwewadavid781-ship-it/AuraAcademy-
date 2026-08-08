@@ -158,7 +158,7 @@ function ShortAnswerQuestion({ q, answer, onAnswer }) {
   )
 }
 
-function ResultScreen({ results, score, total, readiness, onRetry, navigate }) {
+function ResultScreen({ results, score, total, readiness, onRetry, navigate, onFocusWeak, focusLoading }) {
   const scoreColor = score >= 70
     ? 'var(--green)'
     : score >= 50 ? '#f59e0b' : '#ef4444'

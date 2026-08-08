@@ -211,22 +211,36 @@ function ResultScreen({ results, score, total, readiness, onRetry, navigate }) {
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
-        <button
-          className='btn btn-ghost'
-          style={{ flex: 1 }}
-          onClick={() => navigate(-1)}
-        >
-          ← Back
-        </button>
-        <button
-          className='btn btn-primary'
-          style={{ flex: 1 }}
-          onClick={onRetry}
-        >
-          Try Again
-        </button>
-      </div>
+<div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+  <button
+    className='btn btn-ghost'
+    style={{ flex: 1 }}
+    onClick={() => navigate(-1)}
+  >
+    ← Back
+  </button>
+  <button
+    className='btn btn-primary'
+    style={{ flex: 1 }}
+    onClick={onRetry}
+  >
+    Try Again
+  </button>
+</div>
+
+{results.some(r => !r.is_correct) && onFocusWeak && (
+  <button
+    className='btn btn-primary'
+    style={{
+      width: '100%', padding: '0.85rem', marginBottom: '1.5rem',
+      background: '#f59e0b', color: '#02160c'
+    }}
+    onClick={onFocusWeak}
+    disabled={focusLoading}
+  >
+    {focusLoading ? 'Building your focus quiz...' : '🎯 Practice My Weak Areas'}
+  </button>
+)}
 
       {/* Question review */}
       <p style={{

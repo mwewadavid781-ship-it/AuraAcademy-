@@ -1,8 +1,8 @@
 const express = require('express')
-const checkPremium = require('../middleware/checkPremium')
 const router = express.Router()
 const { createClient } = require('@supabase/supabase-js')
 const Groq = require('groq-sdk')
+const checkPremium = require('../middleware/checkPremium')
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -29,7 +29,7 @@ async function callGroq(systemPrompt, userPrompt) {
       { role: 'user', content: userPrompt }
     ],
     temperature: 0.7,
-    max_tokens: 1500
+    max_tokens: 1200
   })
   return response.choices[0]?.message?.content || ''
 }
@@ -82,7 +82,7 @@ async function getTopicVideos(topic) {
   }
 }
 
-// ── POST /api/ai/simplify ──────────────────────────────
+// ── POST /api/ai/simplify ── stays free, no checkPremium ──
 router.post('/simplify', async (req, res) => {
   try {
     const { upload_id, text } = req.body
@@ -103,8 +103,8 @@ Your job is to simplify complex academic content into easy, clear bullet points.
 Use simple English. Keep each bullet under 2 sentences.
 Format: start each point with •`
 
-    // ⬆️ increased from 4000 — covers most full lecture notes/chapters now
-    const prompt = `Simplify this content into clear study bullet points:\n\n${content.slice(0, 20000)}`
+    // Safe under Groq's 8000 TPM free-tier limit
+    const prompt = `Simplify this content into clear study bullet points:\n\n${content.slice(0, 8000)}`
 
     const result = await callGroq(system, prompt)
 
@@ -122,10 +122,8 @@ Format: start each point with •`
   }
 })
 
-// ── POST /api/ai/explain ───────────────────────────────
-// Explain — now gated
+// ── POST /api/ai/explain ── premium ──
 router.post('/explain', checkPremium, async (req, res) => {
-  // ...unchanged
   try {
     const { upload_id, topic, text } = req.body
     let content = text || ''
@@ -147,9 +145,8 @@ Keep the tone warm and encouraging.
 Do not use Markdown formatting — no #, ##, **, or | table symbols.
 Write in plain text with clear paragraph breaks.`
 
-    // ⬆️ increased from 3000
     const prompt = content
-      ? `Using these notes:\n\n${content.slice(0, 15000)}\n\nExplain: "${topic}"`
+      ? `Using these notes:\n\n${content.slice(0, 6000)}\n\nExplain: "${topic}"`
       : `Explain this university topic clearly with examples: "${topic}"`
 
     const [result, videos] = await Promise.all([
@@ -171,7 +168,7 @@ Write in plain text with clear paragraph breaks.`
   }
 })
 
-// ── GET /api/ai/chat/:upload_id ────────────────────────
+// ── GET /api/ai/chat/:upload_id ──
 router.get('/chat/:upload_id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -189,10 +186,8 @@ router.get('/chat/:upload_id', async (req, res) => {
   }
 })
 
-// ── POST /api/ai/ask ───────────────────────────────────
-// Ask — now gated
+// ── POST /api/ai/ask ── premium ──
 router.post('/ask', checkPremium, async (req, res) => {
-  // ...unchanged
   try {
     const { upload_id, question, history } = req.body
 
@@ -219,10 +214,9 @@ To emphasize a term, use CAPITALS or simply repeat it clearly in the sentence, n
     const messages = [{ role: 'system', content: system }]
 
     if (content) {
-      // ⬆️ increased from 2500
       messages.push({
         role: 'user',
-        content: `My notes for context:\n\n${content.slice(0, 15000)}`
+        content: `My notes for context:\n\n${content.slice(0, 6000)}`
       })
       messages.push({
         role: 'assistant',
@@ -244,7 +238,7 @@ To emphasize a term, use CAPITALS or simply repeat it clearly in the sentence, n
       model: 'openai/gpt-oss-120b',
       messages,
       temperature: 0.6,
-      max_tokens: 1000
+      max_tokens: 800
     })
 
     const result = response.choices[0]?.message?.content || ''
@@ -263,10 +257,8 @@ To emphasize a term, use CAPITALS or simply repeat it clearly in the sentence, n
   }
 })
 
-// ── POST /api/ai/flashcards ────────────────────────────
-// Flashcards — now gated
+// ── POST /api/ai/flashcards ── premium ──
 router.post('/flashcards', checkPremium, async (req, res) => {
-  // ...unchanged
   try {
     const { upload_id, course_id, count } = req.body
 
@@ -283,12 +275,11 @@ router.post('/flashcards', checkPremium, async (req, res) => {
 Return ONLY valid JSON. No explanation, no markdown, no backticks.
 Format: [{"question":"...","answer":"..."}]`
 
-    // ⬆️ increased from 3500
     const prompt = `Generate ${numCards} flashcards from this content.
 Each answer should be 1-2 sentences max.
 
 Content:
-${upload.extracted_text.slice(0, 20000)}`
+${upload.extracted_text.slice(0, 6000)}`
 
     const raw = await callGroq(system, prompt)
 
@@ -328,7 +319,7 @@ ${upload.extracted_text.slice(0, 20000)}`
   }
 })
 
-// ── GET /api/ai/flashcards/:course_id ─────────────────
+// ── GET /api/ai/flashcards/:course_id ──
 router.get('/flashcards/:course_id', async (req, res) => {
   try {
     const { data, error } = await supabase

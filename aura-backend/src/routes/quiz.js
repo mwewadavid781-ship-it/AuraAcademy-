@@ -296,7 +296,7 @@ ${weakList}
 Using the course content below, generate 5 NEW questions that test the same underlying concepts these wrong answers reveal weakness in — different wording, same topics, so the student can practice until it sticks. Mostly MCQ.
 
 Content:
-${upload.extracted_text.slice(0, 20000)}`
+${upload.extracted_text.slice(0, 6000)}`
 
     const response = await groq.chat.completions.create({
       model: 'openai/gpt-oss-120b',

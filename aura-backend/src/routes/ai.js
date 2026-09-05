@@ -82,12 +82,41 @@ async function getTopicVideos(topic) {
   }
 }
 
-// ── POST /api/ai/simplify ── stays free, no checkPremium ──
+// ── POST /api/ai/simplify ── free, but capped daily ──
 router.post('/simplify', async (req, res) => {
   try {
     const { upload_id, text } = req.body
-    let content = text || ''
 
+    // Fetch current usage + subscription status
+    const { data: userRow } = await supabase
+      .from('users')
+      .select('subscription_status, simplify_count, simplify_reset_date')
+      .eq('id', req.user.id)
+      .single()
+
+    const today = new Date().toISOString().split('T')[0]
+    let currentCount = userRow?.simplify_count || 0
+
+    // Reset the counter if it's a new day
+    if (userRow?.simplify_reset_date !== today) {
+      currentCount = 0
+      await supabase
+        .from('users')
+        .update({ simplify_count: 0, simplify_reset_date: today })
+        .eq('id', req.user.id)
+    }
+
+    const DAILY_FREE_LIMIT = 10
+    const isPremium = userRow?.subscription_status === 'active'
+
+    if (!isPremium && currentCount >= DAILY_FREE_LIMIT) {
+      return res.status(429).json({
+        error: `You've used your ${DAILY_FREE_LIMIT} free Simplifies for today. Upgrade for unlimited access, or come back tomorrow!`,
+        limit_reached: true
+      })
+    }
+
+    let content = text || ''
     if (upload_id) {
       const upload = await getUploadText(upload_id, req.user.id)
       if (!upload) return res.status(404).json({ error: 'Upload not found' })
@@ -103,10 +132,17 @@ Your job is to simplify complex academic content into easy, clear bullet points.
 Use simple English. Keep each bullet under 2 sentences.
 Format: start each point with •`
 
-    // Safe under Groq's 8000 TPM free-tier limit
     const prompt = `Simplify this content into clear study bullet points:\n\n${content.slice(0, 8000)}`
 
     const result = await callGroq(system, prompt)
+
+    // Only count usage against the limit for non-premium users
+    if (!isPremium) {
+      await supabase
+        .from('users')
+        .update({ simplify_count: currentCount + 1 })
+        .eq('id', req.user.id)
+    }
 
     if (upload_id) {
       await supabase.from('ai_chats').insert({
@@ -115,7 +151,11 @@ Format: start each point with •`
       })
     }
 
-    res.json({ result, type: 'simplify' })
+    res.json({
+      result,
+      type: 'simplify',
+      simplify_remaining: isPremium ? null : Math.max(0, DAILY_FREE_LIMIT - (currentCount + 1))
+    })
   } catch (err) {
     console.error('POST /ai/simplify error:', err)
     res.status(500).json({ error: 'AI simplify failed' })

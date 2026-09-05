@@ -172,6 +172,11 @@ function ResultScreen({ results, score, total, readiness, onRetry, navigate, onF
 
   const hasWrongAnswers = results.some(r => !r.is_correct)
 
+  // Wrong answers first — that's what the student actually needs to review
+  const sortedResults = results
+    .slice()
+    .sort((a, b) => (a.is_correct === b.is_correct ? 0 : a.is_correct ? 1 : -1))
+
   return (
     <div style={{ padding: '1.25rem' }}>
 
@@ -245,7 +250,7 @@ function ResultScreen({ results, score, total, readiness, onRetry, navigate, onF
         </button>
       )}
 
-      {/* Question review */}
+      {/* Question review — wrong answers shown first */}
       <p style={{
         fontSize: '0.7rem', fontWeight: 700,
         color: 'var(--text-faint)', textTransform: 'uppercase',
@@ -255,12 +260,13 @@ function ResultScreen({ results, score, total, readiness, onRetry, navigate, onF
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {results.map((r, i) => (
+        {sortedResults.map((r, i) => (
           <div
             key={i}
             className='card'
             style={{
-              borderLeft: `3px solid ${r.is_correct ? 'var(--green)' : '#ef4444'}`
+              borderLeft: `3px solid ${r.is_correct ? 'var(--green)' : '#ef4444'}`,
+              background: r.is_correct ? 'var(--surface)' : 'rgba(239,68,68,0.04)'
             }}
           >
             <div style={{
@@ -269,24 +275,33 @@ function ResultScreen({ results, score, total, readiness, onRetry, navigate, onF
               marginBottom: '0.5rem'
             }}>
               <p style={{ fontSize: '0.825rem', fontWeight: 600, flex: 1 }}>
-                Q{i + 1}. {r.question}
+                {r.question}
               </p>
-              <span style={{ fontSize: '1rem', flexShrink: 0 }}>
-                {r.is_correct ? '✅' : '❌'}
+              <span style={{
+                fontSize: '0.65rem', fontWeight: 700,
+                padding: '0.2rem 0.5rem', borderRadius: 6,
+                background: r.is_correct ? 'var(--green-dim)' : 'rgba(239,68,68,0.15)',
+                color: r.is_correct ? 'var(--green)' : '#ef4444',
+                textTransform: 'uppercase', letterSpacing: '0.04em',
+                flexShrink: 0
+              }}>
+                {r.is_correct ? 'Correct' : 'Review'}
               </span>
             </div>
 
             {!r.is_correct && (
-              <div style={{ marginBottom: '0.5rem' }}>
-                <p style={{
-                  fontSize: '0.72rem', color: '#ef4444',
-                  marginBottom: '0.2rem'
-                }}>
-                  Your answer: {r.your_answer}
-                </p>
-                <p style={{ fontSize: '0.72rem', color: 'var(--green)' }}>
-                  Correct: {r.correct_answer}
-                </p>
+              <div style={{
+                display: 'flex', flexDirection: 'column', gap: '0.35rem',
+                marginBottom: '0.5rem'
+              }}>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
+                  <span style={{ fontSize: '0.68rem', color: '#ef4444', fontWeight: 700, flexShrink: 0 }}>You said:</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>{r.your_answer}</span>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'baseline' }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--green)', fontWeight: 700, flexShrink: 0 }}>Correct:</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text)' }}>{r.correct_answer}</span>
+                </div>
               </div>
             )}
 
@@ -637,4 +652,4 @@ export default function QuizScreen() {
 
     </div>
   )
-          }
+}

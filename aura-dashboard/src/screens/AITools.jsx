@@ -77,6 +77,7 @@ function SimplifyTool({ upload }) {
   const [result, setResult] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [remaining, setRemaining] = useState(null)
 
   async function run() {
     setLoading(true)
@@ -85,10 +86,15 @@ function SimplifyTool({ upload }) {
     try {
       const data = await aiAPI.simplify({ upload_id: upload.id })
       setResult(data.result)
+      setRemaining(data.simplify_remaining)
     } catch (err) {
-      setError(err.locked
-        ? 'This is a premium feature. Subscribe to use AI tools.'
-        : err.message || 'Failed')
+      if (err.status === 429) {
+        setError(err.message || 'Daily free limit reached')
+      } else {
+        setError(err.locked
+          ? 'This is a premium feature. Subscribe to use AI tools.'
+          : err.message || 'Failed')
+      }
     } finally {
       setLoading(false)
     }
@@ -103,6 +109,11 @@ function SimplifyTool({ upload }) {
       }}>
         <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', lineHeight: 1.5 }}>
           ✨ Turns your uploaded content into clean, easy bullet points in simple English.
+          {remaining !== null && (
+            <span style={{ display: 'block', marginTop: '0.4rem', color: 'var(--green)', fontWeight: 600 }}>
+              {remaining} free simplifies left today
+            </span>
+          )}
         </p>
       </div>
       <button
@@ -117,7 +128,6 @@ function SimplifyTool({ upload }) {
     </div>
   )
 }
-
 // ── EXPLAIN ───────────────────────────────────────────
 function ExplainTool({ upload }) {
   const [topic, setTopic] = useState('')

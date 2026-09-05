@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const { createClient } = require('@supabase/supabase-js')
 const Groq = require('groq-sdk')
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -9,107 +10,154 @@ const supabase = createClient(
 )
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
-// ── POST /api/quiz/generate ────────────────────────────
-router.post('/generate', async (req, res) => {
+// ── POST /api/quiz/:id/submit ──────────────────────────
+router.post('/:id/submit', async (req, res) => {
   try {
-    const { upload_id, course_id, topic_id, count } = req.body
+    const { answers } = req.body
 
-    if (!upload_id) {
-      return res.status(400).json({ error: 'upload_id is required' })
+    if (!answers || !Array.isArray(answers)) {
+      return res.status(400).json({ error: 'answers array is required' })
     }
 
-    // Fetch upload and verify ownership
-    const { data: upload, error: upErr } = await supabase
-      .from('uploads')
-      .select('extracted_text, file_name, course_id')
-      .eq('id', upload_id)
+    const { data: quiz, error } = await supabase
+      .from('quizzes')
+      .select('*')
+      .eq('id', req.params.id)
       .eq('user_id', req.user.id)
       .single()
 
-    if (upErr || !upload) {
-      return res.status(404).json({ error: 'Upload not found' })
+    if (error || !quiz) {
+      return res.status(404).json({ error: 'Quiz not found' })
     }
 
-    if (!upload.extracted_text || upload.extracted_text.length < 50) {
-      return res.status(400).json({ error: 'Upload has no extractable text' })
+    const questions = quiz.questions
+    const results = []
+
+    // Separate short-answer questions — these need AI grading, not exact match
+    const shortAnswerItems = []
+
+    for (const submission of answers) {
+      const q = questions[submission.question_index]
+      if (!q) continue
+
+      if (q.type === 'shortanswer') {
+        // Placeholder — will be filled in after AI grading below
+        shortAnswerItems.push({
+          question_index: submission.question_index,
+          question: q.question,
+          expected: q.answer,
+          student_answer: submission.answer || ''
+        })
+        results.push({
+          question_index: submission.question_index,
+          question: q.question,
+          your_answer: submission.answer,
+          correct_answer: q.answer,
+          explanation: q.explanation,
+          is_correct: null // filled in below
+        })
+      } else {
+        // MCQ / True-False — exact match works fine, options are constrained
+        const isCorrect =
+          submission.answer?.trim().toLowerCase() ===
+          q.answer?.trim().toLowerCase()
+        results.push({
+          question_index: submission.question_index,
+          question: q.question,
+          your_answer: submission.answer,
+          correct_answer: q.answer,
+          explanation: q.explanation,
+          is_correct: isCorrect
+        })
+      }
     }
 
-    const numQ = Math.min(parseInt(count) || 10, 20)
+    // Batch-grade all short-answer questions in ONE Groq call (keeps token usage low)
+    if (shortAnswerItems.length > 0) {
+      const gradingList = shortAnswerItems.map((item, i) =>
+        `${i + 1}. Question: ${item.question}\nExpected answer: ${item.expected}\nStudent's answer: ${item.student_answer}`
+      ).join('\n\n')
 
-    const system = `You are a university exam question generator.
-Generate a mix of MCQ, true/false, and short-answer questions.
-Return ONLY valid JSON array. No markdown, no backticks, no explanation.
-Format exactly:
-[
-  {
-    "type": "mcq",
-    "question": "...",
-    "options": ["A. ...", "B. ...", "C. ...", "D. ..."],
-    "answer": "A. ...",
-    "explanation": "..."
-  },
-  {
-    "type": "truefalse",
-    "question": "...",
-    "options": ["True", "False"],
-    "answer": "True",
-    "explanation": "..."
-  },
-  {
-    "type": "shortanswer",
-    "question": "...",
-    "options": [],
-    "answer": "...",
-    "explanation": "..."
-  }
-]`
+      const system = `You are grading short-answer quiz responses for a university student.
+For each item, judge if the student's answer captures the correct meaning — even if worded completely differently from the expected answer. Be reasonably generous: minor wording differences, synonyms, or less formal phrasing should still count as correct if the core idea is right. Only mark it wrong if the meaning is genuinely incorrect or missing.
+Return ONLY a valid JSON array of true/false values, in the same order as the items given. No explanation, no markdown.
+Example output: [true, false, true]`
 
-    const prompt = `Generate ${numQ} quiz questions from this academic content.
-Mix the types: roughly 50% MCQ, 25% true/false, 25% short answer.
+      try {
+        const response = await groq.chat.completions.create({
+          model: 'openai/gpt-oss-120b',
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: gradingList }
+          ],
+          temperature: 0.2,
+          max_tokens: 300
+        })
 
-Content:
-${upload.extracted_text.slice(0, 20000)}`
+        const raw = response.choices[0]?.message?.content || '[]'
+        const clean = raw.replace(/```json|```/g, '').trim()
+        const gradedResults = JSON.parse(clean)
 
-    const response = await groq.chat.completions.create({
-  model: 'openai/gpt-oss-120b',
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.5,
-      max_tokens: 2000
-    })
-
-    const raw = response.choices[0]?.message?.content || ''
-
-    let questions = []
-    try {
-      const clean = raw.replace(/```json|```/g, '').trim()
-      questions = JSON.parse(clean)
-    } catch {
-      return res.status(500).json({ error: 'Failed to parse quiz questions' })
+        shortAnswerItems.forEach((item, i) => {
+          const resultEntry = results.find(r => r.question_index === item.question_index)
+          if (resultEntry) {
+            resultEntry.is_correct = gradedResults[i] === true
+          }
+        })
+      } catch (gradeErr) {
+        console.error('Short-answer grading failed, falling back to exact match:', gradeErr)
+        // Fallback — if AI grading fails for any reason, don't leave it null
+        shortAnswerItems.forEach(item => {
+          const resultEntry = results.find(r => r.question_index === item.question_index)
+          if (resultEntry) {
+            resultEntry.is_correct =
+              item.student_answer.trim().toLowerCase() === item.expected.trim().toLowerCase()
+          }
+        })
+      }
     }
 
-    // Save quiz to DB (unattempted)
-    const { data: quiz, error: quizErr } = await supabase
+    const correct = results.filter(r => r.is_correct).length
+    const score = Math.round((correct / questions.length) * 100)
+
+    await supabase
       .from('quizzes')
-      .insert({
-        user_id: req.user.id,
-        course_id: upload.course_id || course_id,
-        upload_id,
-        topic_id: topic_id || null,
-        title: `Quiz — ${upload.file_name}`,
-        questions,
-        total_questions: questions.length
-      })
-      .select()
-      .single()
+      .update({ score, attempted_at: new Date().toISOString() })
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
 
-    if (quizErr) throw quizErr
-    res.status(201).json({ quiz })
+    if (quiz.topic_id) {
+      const { data: topicRow } = await supabase
+        .from('topics')
+        .select('progress_percent')
+        .eq('id', quiz.topic_id)
+        .single()
+
+      if (topicRow) {
+        const newProgress = Math.max(topicRow.progress_percent, score)
+        await supabase
+          .from('topics')
+          .update({ progress_percent: newProgress })
+          .eq('id', quiz.topic_id)
+      }
+    }
+
+    let readiness = 'Needs Work'
+    if (score >= 80) readiness = 'Exam Ready'
+    else if (score >= 60) readiness = 'Almost There'
+    else if (score >= 40) readiness = 'Keep Studying'
+
+    res.json({
+      score,
+      correct,
+      total: questions.length,
+      readiness,
+      results,
+      topic_updated: !!quiz.topic_id
+    })
   } catch (err) {
-    console.error('POST /quiz/generate error:', err)
-    res.status(500).json({ error: 'Quiz generation failed' })
+    console.error('POST /quiz/:id/submit error:', err)
+    res.status(500).json({ error: 'Failed to submit quiz' })
   }
 })
 

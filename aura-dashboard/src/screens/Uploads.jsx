@@ -82,8 +82,7 @@ export default function Upload() {
     setDone(null)
 
     if (!ALLOWED.includes(f.type)) {
-      return setError('Onlyaccept='.pdf,.txt,.jpg,.jpeg,.png,.webp,.pptx 'files allowed')
-    }
+     return setError('Only PDF, TXT, JPG, PNG, WEBP or PPTX files allowed')
     if (f.size > MAX_MB * 1024 * 1024) {
       return setError(`File must be under ${MAX_MB}MB`)
     }

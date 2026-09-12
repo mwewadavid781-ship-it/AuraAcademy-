@@ -25,6 +25,7 @@ function BottomNav({ active }) {
 function FileIcon({ type }) {
   if (type?.includes('pdf')) return <span style={{ fontSize: '2rem' }}>📄</span>
   if (type?.includes('image')) return <span style={{ fontSize: '2rem' }}>🖼️</span>
+  if (type?.includes('presentation')) return <span style={{ fontSize: '2rem' }}>📊</span>
   return <span style={{ fontSize: '2rem' }}>📝</span>
 }
 
@@ -82,7 +83,8 @@ export default function Upload() {
     setDone(null)
 
     if (!ALLOWED.includes(f.type)) {
-     return setError('Only PDF, TXT, JPG, PNG, WEBP or PPTX files allowed')
+      return setError('Only PDF, TXT, JPG, PNG, WEBP or PPTX files allowed')
+    }
     if (f.size > MAX_MB * 1024 * 1024) {
       return setError(`File must be under ${MAX_MB}MB`)
     }
@@ -260,7 +262,7 @@ export default function Upload() {
               <input
                 ref={fileRef}
                 type='file'
-                accept='.pdf,.txt,.jpg,.jpeg,.png,.webp'
+                accept='.pdf,.txt,.jpg,.jpeg,.png,.webp,.pptx'
                 onChange={onFileChange}
                 style={{ display: 'none' }}
               />
@@ -277,7 +279,7 @@ export default function Upload() {
                     fontSize: '0.78rem', color: 'var(--text-faint)',
                     lineHeight: 1.5
                   }}>
-                    PDF, TXT, JPG, PNG or WEBP · Max 10MB
+                    PDF, TXT, JPG, PNG, WEBP or PPTX · Max 10MB
                   </p>
                 </>
               ) : (
@@ -420,7 +422,8 @@ export default function Upload() {
                 >
                   <span style={{ fontSize: '1.2rem' }}>
                     {u.file_type === 'pdf' ? '📄'
-                      : u.file_type === 'image' ? '🖼️' : '📝'}
+                      : u.file_type === 'image' ? '🖼️'
+                      : u.file_type === 'pptx' ? '📊' : '📝'}
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{

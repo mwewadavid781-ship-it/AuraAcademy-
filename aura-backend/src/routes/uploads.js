@@ -4,6 +4,7 @@ const { createClient } = require('@supabase/supabase-js')
 const multer = require('multer')
 const pdfParse = require('pdf-parse')
 const Groq = require('groq-sdk')
+const officeParser = require('officeparser')
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -16,12 +17,13 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = [
-      'application/pdf',
-      'text/plain',
-      'image/jpeg',
-      'image/png',
-      'image/webp'
-    ]
+  'application/pdf',
+  'text/plain',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+]
     if (allowed.includes(file.mimetype)) {
       cb(null, true)
     } else {
@@ -39,6 +41,10 @@ async function extractText(buffer, mimetype) {
     }
     if (mimetype === 'text/plain') {
       return buffer.toString('utf8').trim()
+    }
+    if (mimetype === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
+      const text = await officeParser.parseOfficeAsync(buffer)
+      return text.trim()
     }
     return ''
   } catch (err) {
@@ -118,12 +124,13 @@ router.post('/', upload.single('file'), async (req, res) => {
       .getPublicUrl(storagePath)
 
     const typeMap = {
-      'application/pdf': 'pdf',
-      'text/plain': 'text',
-      'image/jpeg': 'image',
-      'image/png': 'image',
-      'image/webp': 'image'
-    }
+  'application/pdf': 'pdf',
+  'text/plain': 'text',
+  'image/jpeg': 'image',
+  'image/png': 'image',
+  'image/webp': 'image',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx'
+}
     const fileTypeLabel = typeMap[file.mimetype] || 'text'
 
     // Extract content depending on file type

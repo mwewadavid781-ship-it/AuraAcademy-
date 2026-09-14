@@ -2,6 +2,23 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { uploadsAPI, coursesAPI } from '../lib/api'
 
+function pickFile(f) {
+  setError('')
+  setDone(null)
+
+  const ext = f.name.split('.').pop().toLowerCase()
+  const allowedExtensions = ['pdf', 'txt', 'jpg', 'jpeg', 'png', 'webp', 'pptx']
+  const validType = ALLOWED.includes(f.type)
+  const validExt = allowedExtensions.includes(ext)
+
+  if (!validType && !validExt) {
+    return setError('Only PDF, TXT, JPG, PNG, WEBP or PPTX files allowed')
+  }
+  if (f.size > MAX_MB * 1024 * 1024) {
+    return setError(`File must be under ${MAX_MB}MB`)
+  }
+  // ...rest stays the same
+  
 function BottomNav({ active }) {
   const links = [
     { to: '/dashboard', icon: '⊞', label: 'Home' },

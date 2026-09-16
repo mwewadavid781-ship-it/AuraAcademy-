@@ -2,21 +2,6 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root {
-  --green: #34e89a;
-  --green-dim: rgba(52,232,154,0.12);
-  --green-border: rgba(52,232,154,0.2);
-  --bg: #02160c;
-  --bg2: #061a10;
-  --surface: rgba(255,255,255,0.03);
-  --surface2: rgba(255,255,255,0.06);
-  --text: #ffffff;
-  --text-dim: rgba(255,255,255,0.5);
-  --text-faint: rgba(255,255,255,0.25);
-  --radius: 12px;
-  --radius-lg: 20px;
-}
-
 html, body {
   background: var(--bg);
   color: var(--text);

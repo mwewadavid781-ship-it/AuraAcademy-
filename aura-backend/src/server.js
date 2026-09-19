@@ -20,7 +20,6 @@ const groupRoutes = require('./routes/groups')
 const paymentRoutes = require('./routes/payments')
 const adminRoutes = require('./routes/admin')
 const dashboardRoutes = require('./routes/dashboard')
-app.use('/api/admin', adminRoutes)
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -62,6 +61,7 @@ app.get('/', (req, res) => {
 
 // ── Public routes (no auth needed) ──
 app.use('/api/auth', authRoutes)
+app.use('/api/admin', adminRoutes)
 
 // MTN MoMo webhook is public — MoMo calls it directly
 app.use('/api/payments', paymentRoutes)

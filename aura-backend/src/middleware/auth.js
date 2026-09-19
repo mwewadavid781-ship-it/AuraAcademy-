@@ -41,6 +41,27 @@ async function requireAuth(req, res, next) {
         subscription_status: 'trial'
       })
     }
+    
+    // Track presence for the live-users admin view — fire and forget, don't block the request
+const now = new Date()
+supabase
+  .from('users')
+  .select('last_seen_at')
+  .eq('id', user.id)
+  .single()
+  .then(({ data }) => {
+    const gapMinutes = data?.last_seen_at
+      ? (now - new Date(data.last_seen_at)) / 60000
+      : Infinity
+
+    const updates = { last_seen_at: now.toISOString() }
+    // Treat a 30+ minute gap since last activity as a new session
+    if (gapMinutes > 30) {
+      updates.session_started_at = now.toISOString()
+    }
+
+    supabase.from('users').update(updates).eq('id', user.id).then(() => {})
+  })
 
     next()
   } catch (err) {

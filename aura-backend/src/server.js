@@ -18,7 +18,9 @@ const aiRoutes = require('./routes/ai')
 const quizRoutes = require('./routes/quiz')
 const groupRoutes = require('./routes/groups')
 const paymentRoutes = require('./routes/payments')
+const adminRoutes = require('./routes/admin')
 const dashboardRoutes = require('./routes/dashboard')
+app.use('/api/admin', adminRoutes)
 
 const app = express()
 const PORT = process.env.PORT || 4000

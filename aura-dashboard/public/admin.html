@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Aura Admin — Live Users</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#02160c;color:#fff;font-family:-apple-system,sans-serif;padding:1.5rem}
+h1{font-size:1.3rem;margin-bottom:1rem}
+.key-box{display:flex;gap:0.5rem;margin-bottom:1.5rem}
+input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(52,232,154,0.2);border-radius:8px;padding:0.6rem;color:#fff;font-size:0.9rem}
+button{background:#34e89a;color:#02160c;border:none;border-radius:8px;padding:0.6rem 1.2rem;font-weight:600;cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:0.82rem}
+th,td{text-align:left;padding:0.6rem 0.5rem;border-bottom:1px solid rgba(255,255,255,0.06)}
+th{color:rgba(255,255,255,0.4);text-transform:uppercase;font-size:0.68rem;letter-spacing:0.05em}
+.live{color:#34e89a;font-weight:700}
+.offline{color:rgba(255,255,255,0.3)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.dot.on{background:#34e89a;box-shadow:0 0 6px #34e89a}
+.dot.off{background:rgba(255,255,255,0.2)}
+#status{font-size:0.8rem;color:rgba(255,255,255,0.4);margin-bottom:1rem}
+</style>
+</head>
+<body>
+
+<h1>✦ Aura Admin — Live Users</h1>
+
+<div class="key-box">
+  <input id="keyInput" type="password" placeholder="Enter admin key..."/>
+  <button onclick="loadUsers()">Load</button>
+</div>
+
+<p id="status"></p>
+<table id="userTable" style="display:none">
+  <thead>
+    <tr>
+      <th>Status</th>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Plan</th>
+      <th>Session Started</th>
+      <th>Last Seen</th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+
+<script>
+const API_URL = 'https://your-backend-url.onrender.com' // ⚠️ set this to your real backend URL
+
+async function loadUsers() {
+  const key = document.getElementById('keyInput').value
+  const status = document.getElementById('status')
+  const table = document.getElementById('userTable')
+  const tbody = document.getElementById('tbody')
+
+  status.textContent = 'Loading...'
+  table.style.display = 'none'
+
+  try {
+    const res = await fetch(`${API_URL}/api/admin/live-users`, {
+      headers: { 'x-admin-key': key }
+    })
+    const data = await res.json()
+
+    if (!res.ok) {
+      status.textContent = data.error || 'Failed to load'
+      return
+    }
+
+    const liveCount = data.users.filter(u => u.is_live).length
+    status.textContent = `${liveCount} live now · ${data.users.length} total tracked`
+
+    tbody.innerHTML = data.users.map(u => `
+      <tr>
+        <td><span class="dot ${u.is_live ? 'on' : 'off'}"></span><span class="${u.is_live ? 'live' : 'offline'}">${u.is_live ? 'LIVE' : 'Offline'}</span></td>
+        <td>${u.full_name || '—'}</td>
+        <td>${u.email}</td>
+        <td>${u.subscription_status}</td>
+        <td>${u.session_started_at ? new Date(u.session_started_at).toLocaleString() : '—'}</td>
+        <td>${new Date(u.last_seen_at).toLocaleString()}</td>
+      </tr>
+    `).join('')
+
+    table.style.display = 'table'
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message
+  }
+}
+</script>
+
+</body>
+</html>

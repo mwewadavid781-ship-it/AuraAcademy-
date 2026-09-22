@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Suspense, lazy } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
 import Login from './screens/Login'
@@ -10,8 +11,11 @@ import Uploads from './screens/Uploads'
 import AITools from './screens/AITools'
 import QuizScreen from './screens/QuizScreen'
 import Groups from './screens/Groups'
-import GroupChat from './screens/GroupChat'
 import Subscription from './screens/Subscription'
+
+// Keep optional realtime integrations out of the initial bundle. A bad or
+// missing Supabase deployment variable must not blank the whole application.
+const GroupChat = lazy(() => import('./screens/GroupChat'))
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -39,18 +43,10 @@ function RootRoute() {
 
 function Loader() {
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#02160c',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    }}>
+    <div style={{ minHeight: '100vh', background: '#02160c', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
         <div className='spinner' />
-        <p style={{ color: '#34e89a', marginTop: '1rem', fontSize: '0.875rem' }}>
-          Loading Aura...
-        </p>
+        <p style={{ color: '#34e89a', marginTop: '1rem', fontSize: '0.875rem' }}>Loading Aura...</p>
       </div>
     </div>
   )
@@ -58,21 +54,22 @@ function Loader() {
 
 function AppRoutes() {
   return (
-    <Routes>
-      <Route path='/' element={<RootRoute />} />
-      <Route path='/login' element={<PublicRoute><Login /></PublicRoute>} />
-      <Route path='/signup' element={<PublicRoute><Signup /></PublicRoute>} />
-      <Route path='/dashboard' element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path='/syllabus' element={<ProtectedRoute><Syllabus /></ProtectedRoute>} />
-      <Route path='/courses/:id' element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
-      <Route path='/upload' element={<ProtectedRoute><Uploads /></ProtectedRoute>} />
-      <Route path='/ai/:upload_id' element={<ProtectedRoute><AITools /></ProtectedRoute>} />
-      <Route path='/quiz/:id' element={<ProtectedRoute><QuizScreen /></ProtectedRoute>} />
-      <Route path='/groups' element={<ProtectedRoute><Groups /></ProtectedRoute>} />
-      <Route path='/groups/:id' element={<ProtectedRoute><GroupChat /></ProtectedRoute>} />
-      <Route path='/subscription' element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
-      <Route path='/' element={<RootRoute />} />
-    </Routes>
+    <Suspense fallback={<Loader />}>
+      <Routes>
+        <Route path='/' element={<RootRoute />} />
+        <Route path='/login' element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path='/signup' element={<PublicRoute><Signup /></PublicRoute>} />
+        <Route path='/dashboard' element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path='/syllabus' element={<ProtectedRoute><Syllabus /></ProtectedRoute>} />
+        <Route path='/courses/:id' element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
+        <Route path='/upload' element={<ProtectedRoute><Uploads /></ProtectedRoute>} />
+        <Route path='/ai/:upload_id' element={<ProtectedRoute><AITools /></ProtectedRoute>} />
+        <Route path='/quiz/:id' element={<ProtectedRoute><QuizScreen /></ProtectedRoute>} />
+        <Route path='/groups' element={<ProtectedRoute><Groups /></ProtectedRoute>} />
+        <Route path='/groups/:id' element={<ProtectedRoute><GroupChat /></ProtectedRoute>} />
+        <Route path='/subscription' element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
+      </Routes>
+    </Suspense>
   )
 }
 

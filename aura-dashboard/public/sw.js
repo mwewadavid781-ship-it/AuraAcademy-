@@ -1,46 +1,58 @@
-const CACHE_NAME = 'aura-academy-v2'
-const OFFLINE_URLS = [
-  '/index.html'
-]
+const CACHE_NAME = 'aura-academy-v3'
+const OFFLINE_URLS = ['/index.html']
 
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(OFFLINE_URLS))
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(OFFLINE_URLS))
+      .then(() => self.skipWaiting())
   )
-  self.skipWaiting()
 })
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
-      )
-    )
+    caches.keys()
+      .then(keys => Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => caches.delete(key))
+      ))
+      .then(() => self.clients.claim())
   )
-  self.clients.claim()
 })
 
 self.addEventListener('fetch', event => {
-  // Never cache API calls — always go to the network for fresh data
-  if (event.request.url.includes('/api/')) return
+  const request = event.request
 
-  // Network-first for page navigation — always try to get the LATEST html/js first
-  if (event.request.mode === 'navigate') {
+  // Only handle normal GET requests. Never intercept API or non-HTTP requests.
+  if (
+    request.method !== 'GET' ||
+    request.url.includes('/api/') ||
+    !request.url.startsWith('http')
+  ) {
+    return
+  }
+
+  if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html'))
+      fetch(request)
+        .then(response => response)
+        .catch(() => caches.match('/index.html'))
     )
     return
   }
 
-  // For everything else (assets), try network first, fall back to cache only if offline
+  // Assets use the network when available. Cache only successful responses so
+  // a failed/stale JavaScript response can never replace a working asset.
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then(response => {
-        const clone = response.clone()
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone))
+        if (response.ok) {
+          const copy = response.clone()
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy))
+        }
         return response
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => caches.match(request))
   )
 })

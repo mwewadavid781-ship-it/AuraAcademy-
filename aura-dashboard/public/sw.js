@@ -1,7 +1,5 @@
-const CACHE_NAME = 'aura-academy-v1'
+const CACHE_NAME = 'aura-academy-v2'
 const OFFLINE_URLS = [
-  '/',
-  '/dashboard',
   '/index.html'
 ]
 
@@ -27,9 +25,22 @@ self.addEventListener('fetch', event => {
   // Never cache API calls — always go to the network for fresh data
   if (event.request.url.includes('/api/')) return
 
+  // Network-first for page navigation — always try to get the LATEST html/js first
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/index.html'))
+    )
+    return
+  }
+
+  // For everything else (assets), try network first, fall back to cache only if offline
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      return cached || fetch(event.request).catch(() => caches.match('/index.html'))
-    })
+    fetch(event.request)
+      .then(response => {
+        const clone = response.clone()
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone))
+        return response
+      })
+      .catch(() => caches.match(event.request))
   )
 })

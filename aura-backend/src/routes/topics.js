@@ -7,13 +7,19 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 )
 
-// PATCH /api/topics/:id — update topic progress
+// PATCH /api/topics/:id — update topic progress and metadata
 router.patch('/:id', async (req, res) => {
   try {
     const { progress_percent, title, description } = req.body
-
     const updates = {}
-    if (progress_percent !== undefined) updates.progress_percent = progress_percent
+
+    if (progress_percent !== undefined) {
+      const value = Number(progress_percent)
+      if (!Number.isFinite(value)) {
+        return res.status(400).json({ error: 'progress_percent must be a number' })
+      }
+      updates.progress_percent = Math.max(0, Math.min(100, Math.round(value)))
+    }
     if (title !== undefined) updates.title = title
     if (description !== undefined) updates.description = description
 
@@ -21,14 +27,13 @@ router.patch('/:id', async (req, res) => {
       return res.status(400).json({ error: 'No valid fields to update' })
     }
 
-    // Verify the topic belongs to a course owned by this user
-    const { data: topic } = await supabase
+    const { data: topic, error: topicError } = await supabase
       .from('topics')
       .select('id, course_id, courses(user_id)')
       .eq('id', req.params.id)
       .single()
 
-    if (!topic || topic.courses.user_id !== req.user.id) {
+    if (topicError || !topic || topic.courses?.user_id !== req.user.id) {
       return res.status(404).json({ error: 'Topic not found' })
     }
 
@@ -56,7 +61,7 @@ router.delete('/:id', async (req, res) => {
       .eq('id', req.params.id)
       .single()
 
-    if (!topic || topic.courses.user_id !== req.user.id) {
+    if (!topic || topic.courses?.user_id !== req.user.id) {
       return res.status(404).json({ error: 'Topic not found' })
     }
 

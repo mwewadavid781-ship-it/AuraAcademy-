@@ -17,15 +17,16 @@ function cleanExtractedText(value) {
   if (typeof value === 'string') return value.trim()
   if (value == null) return ''
   if (Buffer.isBuffer(value)) return value.toString('utf8').trim()
-  if (typeof value === 'object') {
-    return Object.values(value).map(cleanExtractedText).filter(Boolean).join('\n').trim()
-  }
+  if (typeof value === 'object') return Object.values(value).map(cleanExtractedText).filter(Boolean).join('\n').trim()
   return String(value).trim()
 }
 
 async function extractText(buffer, mimetype) {
   try {
-    if (mimetype === 'application/pdf') return cleanExtractedText((await pdfParse(buffer)).text)
+    if (mimetype === 'application/pdf') {
+      const parsed = await pdfParse(buffer)
+      return cleanExtractedText(parsed.text)
+    }
     if (mimetype === 'text/plain') return cleanExtractedText(buffer)
     if (mimetype === PPTX) return cleanExtractedText(await officeParser.parseOfficeAsync(buffer))
   } catch (err) {
@@ -34,20 +35,35 @@ async function extractText(buffer, mimetype) {
   return ''
 }
 
+// Images are transcribed once at upload time. Every AI tool (simplify,
+// explain, ask, quiz and flashcards) then uses the saved extracted_text.
 async function extractImageText(publicUrl) {
-  try {
-    const response = await groq.chat.completions.create({
-      model: 'qwen/qwen3.6-27b',
-      messages: [{ role: 'user', content: [
-        { type: 'text', text: 'Transcribe all readable text in this study-note image, including headings, bullets, formulas and labels. Return only the transcription.' },
-        { type: 'image_url', image_url: { url: publicUrl } }
-      ] }], temperature: 0.2, max_tokens: 2000
-    })
-    return cleanExtractedText(response.choices[0]?.message?.content)
-  } catch (err) {
-    console.error('Image vision extraction error:', err)
-    return ''
+  const models = [
+    process.env.GROQ_VISION_MODEL || 'qwen/qwen3.6-27b',
+    'meta-llama/llama-4-scout-17b-16e-instruct'
+  ].filter((model, index, list) => list.indexOf(model) === index)
+
+  for (const model of models) {
+    try {
+      const response = await groq.chat.completions.create({
+        model,
+        messages: [{ role: 'user', content: [
+          {
+            type: 'text',
+            text: 'Read this study-note image carefully. Transcribe all readable text, headings, bullets, formulas, tables and labels. Preserve the meaning and return only the transcription. If there is no readable text, return an empty string.'
+          },
+          { type: 'image_url', image_url: { url: publicUrl } }
+        ] }],
+        temperature: 0.1,
+        max_tokens: 4000
+      })
+      const text = cleanExtractedText(response.choices[0]?.message?.content)
+      if (text) return text
+    } catch (err) {
+      console.error(`Image vision extraction failed with ${model}:`, err.message || err)
+    }
   }
+  return ''
 }
 
 router.post('/', upload.single('file'), async (req, res) => {
@@ -73,16 +89,33 @@ router.post('/', upload.single('file'), async (req, res) => {
 
     const typeMap = { 'application/pdf': 'pdf', 'text/plain': 'text', 'image/jpeg': 'image', 'image/png': 'image', 'image/webp': 'image', [PPTX]: 'pptx' }
     const fileType = typeMap[req.file.mimetype] || 'text'
-    const extractedText = fileType === 'image' ? await extractImageText(urlData.publicUrl) : await extractText(req.file.buffer, req.file.mimetype)
+    const extractedText = fileType === 'image'
+      ? await extractImageText(urlData.publicUrl)
+      : await extractText(req.file.buffer, req.file.mimetype)
 
     const { data: uploadRecord, error: dbError } = await supabase.from('uploads').insert({
       user_id: req.user.id, course_id, topic_id: selectedTopic, file_name: req.file.originalname,
       file_url: urlData.publicUrl, file_type: fileType, file_size_kb: Math.round(req.file.size / 1024),
-      extracted_text: extractedText, processing_status: extractedText ? 'done' : 'failed'
+      extracted_text: extractedText, processing_status: extractedText.length >= 10 ? 'done' : 'failed'
     }).select().single()
     if (dbError) throw dbError
 
-    res.status(201).json({ upload: uploadRecord, extracted: Boolean(extractedText), extracted_characters: extractedText.length, extraction_warning: !extractedText ? 'No readable text was found. Try exporting the presentation as PPTX or PDF.' : null, actions: ['simplify', 'explain', 'ask', 'quiz', 'flashcards'] })
+    const hasText = extractedText.length >= 10
+    const extractionWarning = hasText
+      ? null
+      : fileType === 'pdf'
+        ? 'No text layer was found. This may be a scanned PDF; upload an OCR/text-based PDF or image pages.'
+        : fileType === 'image'
+          ? 'No readable text was found in this image.'
+          : 'No readable text was found in this file.'
+
+    res.status(201).json({
+      upload: uploadRecord,
+      extracted: hasText,
+      extracted_characters: extractedText.length,
+      extraction_warning: extractionWarning,
+      actions: ['simplify', 'explain', 'ask', 'quiz', 'flashcards']
+    })
   } catch (err) {
     console.error('POST /uploads error:', err)
     res.status(500).json({ error: err.message || 'Upload failed' })
@@ -115,7 +148,7 @@ router.delete('/:id', async (req, res) => {
     if (path) await supabase.storage.from('uploads').remove([path])
     await supabase.from('uploads').delete().eq('id', req.params.id).eq('user_id', req.user.id)
     res.json({ message: 'Upload deleted' })
-  } catch (err) { console.error('DELETE /uploads/:id error:', err); res.status(500).json({ error: 'Failed to delete upload' }) }
+  } catch (err) { console.error('DELETE /uploads error:', err); res.status(500).json({ error: 'Failed to delete upload' }) }
 })
 
 module.exports = router

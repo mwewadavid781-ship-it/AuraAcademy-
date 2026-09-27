@@ -287,6 +287,39 @@ export default function Dashboard() {
     load()
   }, [])
 
+  useEffect(() => {
+    async function setupPush() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+      if (Notification.permission === 'denied') return
+
+      try {
+        const reg = await navigator.serviceWorker.ready
+        const existing = await reg.pushManager.getSubscription()
+        if (existing) return
+
+        const permission = await Notification.requestPermission()
+        if (permission !== 'granted') return
+
+        const { publicKey } = await fetch(`${import.meta.env.VITE_API_URL}/api/push/vapid-key`).then(r => r.json())
+
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: publicKey
+        })
+
+        await fetch(`${import.meta.env.VITE_API_URL}/api/push/subscribe`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('aura_token')}`
+          },
+          body: JSON.stringify({ subscription: sub })
+        })
+      } catch {}
+    }
+    setupPush()
+  }, [])
+
   if (loading) {
     return (
       <div style={{

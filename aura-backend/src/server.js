@@ -8,6 +8,25 @@ const { createClient } = require('@supabase/supabase-js')
 
 const requireAuth = require('./middleware/auth')
 const checkPremium = require('./middleware/checkPremium')
+const express = require('express')
+const cors = require('cors')
+
+// 1. REQUIRE THE HEALTH ROUTE
+const healthRoutes = require('./routes/health')
+
+const app = express()
+
+// 2. CONFIGURE CORS WITH x-admin-key ALLOWED (Crucial!)
+app.use(cors({
+  origin: '*', 
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key']
+}))
+
+app.use(express.json())
+
+// 3. MOUNT THE HEALTH ROUTE
+app.use('/api/health', healthRoutes)
+
 
 // ── Routes ──
 const authRoutes = require('./routes/auth')

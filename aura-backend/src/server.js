@@ -6,23 +6,9 @@ const cors = require('cors')
 const helmet = require('helmet')
 const { createClient } = require('@supabase/supabase-js')
 
+// ── Middleware ──
 const requireAuth = require('./middleware/auth')
 const checkPremium = require('./middleware/checkPremium')
-const express = require('express');
-const cors = require('cors');
-const healthRoutes = require('./routes/health');
-
-const app = express();
-
-app.use(cors({
-  origin: '*',
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key']
-}));
-
-app.use(express.json());
-app.use('/api/health', healthRoutes);
-
-
 
 // ── Routes ──
 const authRoutes = require('./routes/auth')
@@ -35,6 +21,7 @@ const groupRoutes = require('./routes/groups')
 const paymentRoutes = require('./routes/payments')
 const adminRoutes = require('./routes/admin')
 const dashboardRoutes = require('./routes/dashboard')
+const healthRoutes = require('./routes/health')
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -44,15 +31,19 @@ app.use(helmet())
 app.use(cors({
   origin: process.env.FRONTEND_URL || '*',
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-key']
 }))
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 
-// ── Health check (Render pings this to keep service alive) ──
+// ── Health checks ──
+// Basic ping route
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() })
 })
+
+// Full system readiness check route (readiness.html)
+app.use('/api/health', healthRoutes)
 
 // ── Root info route ──
 app.get('/', (req, res) => {
@@ -62,6 +53,7 @@ app.get('/', (req, res) => {
     status: 'online',
     endpoints: {
       health: '/health',
+      fullHealth: '/api/health/full',
       auth: '/api/auth',
       courses: '/api/courses',
       uploads: '/api/uploads',

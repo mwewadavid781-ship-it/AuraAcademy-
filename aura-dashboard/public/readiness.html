@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Aura Readiness Check</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:#02160c;color:#fff;font-family:-apple-system,sans-serif;padding:1.5rem;max-width:600px;margin:0 auto}
+h1{font-size:1.3rem;margin-bottom:0.5rem}
+.sub{color:rgba(255,255,255,0.4);font-size:0.85rem;margin-bottom:1.5rem}
+.key-box{display:flex;gap:0.5rem;margin-bottom:1.5rem}
+input{flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(52,232,154,0.2);border-radius:8px;padding:0.7rem;color:#fff;font-size:0.9rem}
+button{background:#34e89a;color:#02160c;border:none;border-radius:8px;padding:0.7rem 1.4rem;font-weight:700;cursor:pointer;font-size:0.9rem}
+button:disabled{opacity:0.5;cursor:default}
+.summary{padding:1.25rem;border-radius:14px;margin-bottom:1.5rem;text-align:center;font-weight:700;font-size:1.1rem}
+.summary.healthy{background:rgba(52,232,154,0.1);border:1px solid #34e89a;color:#34e89a}
+.summary.issues{background:rgba(239,68,68,0.1);border:1px solid #ef4444;color:#ef4444}
+.check{display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1rem;background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:0.5rem}
+.icon{font-size:1.1rem;flex-shrink:0}
+.check-name{font-weight:600;font-size:0.88rem}
+.check-detail{font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:0.15rem}
+</style>
+</head>
+<body>
+
+<h1>✦ Aura Readiness Check</h1>
+<p class="sub">Tests the core systems Aura depends on — database, storage, AI, and environment setup.</p>
+
+<div class="key-box">
+  <input id="keyInput" type="password" placeholder="Enter admin key..."/>
+  <button id="runBtn" onclick="runCheck()">Run Check</button>
+</div>
+
+<div id="results"></div>
+
+<script>
+const API_URL = 'https://your-backend-url.onrender.com' // ⚠️ set to your real backend URL
+
+async function runCheck() {
+  const key = document.getElementById('keyInput').value
+  const btn = document.getElementById('runBtn')
+  const results = document.getElementById('results')
+
+  btn.disabled = true
+  btn.textContent = 'Checking...'
+  results.innerHTML = '<p style="color:rgba(255,255,255,0.4)">Running checks...</p>'
+
+  try {
+    const res = await fetch(`${API_URL}/api/health/full`, {
+      headers: { 'x-admin-key': key }
+    })
+    const data = await res.json()
+
+    if (!res.ok) {
+      results.innerHTML = `<p style="color:#ef4444">${data.error || 'Check failed'}</p>`
+      return
+    }
+
+    const passCount = data.checks.filter(c => c.status === 'pass').length
+
+    let html = `
+      <div class="summary ${data.overall === 'healthy' ? 'healthy' : 'issues'}">
+        ${data.overall === 'healthy' ? '✅ All systems healthy' : '⚠️ Issues found'}
+        <div style="font-size:0.8rem;font-weight:400;margin-top:0.3rem;opacity:0.8">
+          ${passCount}/${data.checks.length} checks passed · ${new Date(data.checked_at).toLocaleTimeString()}
+        </div>
+      </div>
+    `
+
+    html += data.checks.map(c => `
+      <div class="check">
+        <span class="icon">${c.status === 'pass' ? '✅' : '❌'}</span>
+        <div>
+          <div class="check-name">${c.name}</div>
+          <div class="check-detail">${c.detail}</div>
+        </div>
+      </div>
+    `).join('')
+
+    results.innerHTML = html
+  } catch (err) {
+    results.innerHTML = `<p style="color:#ef4444">Error: ${err.message}</p>`
+  } finally {
+    btn.disabled = false
+    btn.textContent = 'Run Check'
+  }
+}
+</script>
+
+</body>
+</html>

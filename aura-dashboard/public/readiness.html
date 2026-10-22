@@ -45,6 +45,9 @@ async function runCheck() {
   btn.disabled = true
   btn.textContent = 'Checking...'
   results.innerHTML = '<p style="color:rgba(255,255,255,0.4)">Running checks...</p>'
+const API_URL = 'https://aura-backend-0xkl.onrender.com'
+
+
 
   try {
     const res = await fetch(`${API_URL}/api/health/full`, {
